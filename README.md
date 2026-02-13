@@ -9,7 +9,7 @@ data lives in your Git repository.
 ## Installation
 
 ```bash
-go install github.com/brooke-hamilton/rad-graph/cmd/grif@latest
+go install github.com/brooke-hamilton/rad-graph/src/cmd/grif@latest
 ```
 
 Or build from source:
@@ -111,7 +111,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/brooke-hamilton/rad-graph/graph"
+    "github.com/brooke-hamilton/rad-graph/src/graph"
 )
 
 func main() {

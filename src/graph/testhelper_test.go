@@ -11,7 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-const integrationDir = "../testdata"
+const integrationDir = "../../testdata"
 
 // setupTestRepo creates a new Git repository in a unique subdirectory of
 // testdata/ (repo root) for integration testing. The repo is initialized
