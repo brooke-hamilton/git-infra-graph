@@ -1,10 +1,10 @@
 <!--
 Sync Impact Report
 ===================
-Version change: 1.0.0 → 1.0.1
+Version change: 1.0.1 → 1.1.0
 Modified principles:
-  - V. Graph-Layer and Application-Layer Separation → clarified
-    "application layer" definition
+  - IV. Test-First Development → materially expanded with
+    integration testing infrastructure requirements
 Added sections: None
 Removed sections: None
 Templates requiring updates:
@@ -63,9 +63,31 @@ Follow-up TODOs: None
 - Unit tests MUST cover the core module's public API surface.
 - Integration tests MUST verify correct creation and reading of
   Git objects (blobs, trees, commits, refs).
+- Integration tests are REQUIRED for every major feature.
 - End-to-end tests MUST exercise CLI commands against a real
   (temporary) Git repository.
 - All tests MUST pass before a pull request can be merged.
+
+#### Integration Test Infrastructure
+
+- Integration tests MUST use live Git repository instances —
+  mocking the Git object database is not permitted for
+  integration-level coverage.
+- The repository MUST contain a dedicated integration-test
+  scratch directory (e.g., `testdata/integration/`) that is
+  listed in the project's `.gitignore` so that temporary
+  repositories are never committed.
+- Each test MUST create a uniquely named Git repository inside
+  a subdirectory of the scratch directory. Unique names MUST
+  be derived deterministically (e.g., from the test name) or
+  via a random/UUID suffix to guarantee no collisions.
+- This naming convention MUST allow tests to run in parallel
+  (`go test -parallel`) without interference between
+  concurrent repository instances.
+- Tests MUST clean up their temporary repositories after
+  completion (use `t.Cleanup` or equivalent). Leftover
+  directories in the scratch folder MUST NOT cause subsequent
+  test runs to fail.
 
 ### V. Graph-Layer and Application-Layer Separation
 
@@ -98,7 +120,9 @@ Follow-up TODOs: None
   entry point.
 - **Build**: Standard `go build` / `go install` toolchain.
 - **Testing**: `go test` with the standard `testing` package.
-  Table-driven tests are preferred.
+  Table-driven tests are preferred. Integration tests use live
+  Git repositories created under `testdata/integration/`
+  (git-ignored).
 - **Linting**: `golangci-lint` with project-level configuration.
 - **License**: MIT.
 
@@ -131,4 +155,4 @@ Follow-up TODOs: None
   constitutional principles. Deviations MUST be justified in the
   PR description and approved explicitly.
 
-**Version**: 1.0.1 | **Ratified**: 2026-02-13 | **Last Amended**: 2026-02-13
+**Version**: 1.1.0 | **Ratified**: 2026-02-13 | **Last Amended**: 2026-02-13
