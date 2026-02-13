@@ -1,11 +1,10 @@
 <!--
 Sync Impact Report
 ===================
-Version change: 1.0.0 → 1.0.1
-Modified principles:
-  - V. Graph-Layer and Application-Layer Separation → clarified
-    "application layer" definition
-Added sections: None
+Version change: 1.1.0 → 1.2.0
+Modified sections:
+  - Development Workflow → added README.md requirements
+Added sections: None (added subsection within Development Workflow)
 Removed sections: None
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ no changes needed
@@ -14,7 +13,7 @@ Templates requiring updates:
 Follow-up TODOs: None
 -->
 
-# rad-graph Constitution
+# grif Constitution
 
 ## Core Principles
 
@@ -63,14 +62,36 @@ Follow-up TODOs: None
 - Unit tests MUST cover the core module's public API surface.
 - Integration tests MUST verify correct creation and reading of
   Git objects (blobs, trees, commits, refs).
+- Integration tests are REQUIRED for every major feature.
 - End-to-end tests MUST exercise CLI commands against a real
   (temporary) Git repository.
 - All tests MUST pass before a pull request can be merged.
 
+#### Integration Test Infrastructure
+
+- Integration tests MUST use live Git repository instances —
+  mocking the Git object database is not permitted for
+  integration-level coverage.
+- The repository MUST contain a dedicated integration-test
+  scratch directory (e.g., `testdata/`) that is
+  listed in the project's `.gitignore` so that temporary
+  repositories are never committed.
+- Each test MUST create a uniquely named Git repository inside
+  a subdirectory of the scratch directory. Unique names MUST
+  be derived deterministically (e.g., from the test name) or
+  via a random/UUID suffix to guarantee no collisions.
+- This naming convention MUST allow tests to run in parallel
+  (`go test -parallel`) without interference between
+  concurrent repository instances.
+- Tests MUST clean up their temporary repositories after
+  completion (use `t.Cleanup` or equivalent). Leftover
+  directories in the scratch folder MUST NOT cause subsequent
+  test runs to fail.
+
 ### V. Graph-Layer and Application-Layer Separation
 
 - "Application layer" means any external program that imports
-  the rad-graph Go module and uses it to store graph data in
+  the grif Go module and uses it to store graph data in
   Git. The CLI included in this project is NOT an application
   layer; it is a thin interface to the graph primitives exposed
   by the module.
@@ -98,7 +119,9 @@ Follow-up TODOs: None
   entry point.
 - **Build**: Standard `go build` / `go install` toolchain.
 - **Testing**: `go test` with the standard `testing` package.
-  Table-driven tests are preferred.
+  Table-driven tests are preferred. Integration tests use live
+  Git repositories created under `testdata/`
+  (git-ignored).
 - **Linting**: `golangci-lint` with project-level configuration.
 - **License**: MIT.
 
@@ -113,6 +136,21 @@ Follow-up TODOs: None
   (e.g., `feat:`, `fix:`, `docs:`, `test:`, `refactor:`).
 - Each pull request MUST be reviewed for constitution compliance
   as part of the review checklist.
+
+### README.md
+
+- A comprehensive `README.md` MUST be maintained at the
+  repository root.
+- The README MUST include installation instructions using
+  `go install` syntax (e.g.,
+  `go install github.com/brooke-hamilton/rad-graph/cmd/grif@latest`)
+  so that users can compile and install the tool in one step.
+- The README MUST list every available CLI command with a brief
+  description of what each command does.
+- The README MUST include runnable usage examples (command +
+  expected output) for every command.
+- When a command is added, removed, or its interface changes,
+  the README MUST be updated in the same pull request.
 
 ## Governance
 
@@ -131,4 +169,4 @@ Follow-up TODOs: None
   constitutional principles. Deviations MUST be justified in the
   PR description and approved explicitly.
 
-**Version**: 1.0.1 | **Ratified**: 2026-02-13 | **Last Amended**: 2026-02-13
+**Version**: 1.2.0 | **Ratified**: 2026-02-13 | **Last Amended**: 2026-02-13
