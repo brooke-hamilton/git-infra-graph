@@ -143,7 +143,7 @@ Follow-up TODOs: None
   repository root.
 - The README MUST include installation instructions using
   `go install` syntax (e.g.,
-  `go install github.com/brooke-hamilton/grif/cmd/grif@latest`)
+  `go install github.com/brooke-hamilton/rad-graph/cmd/grif@latest`)
   so that users can compile and install the tool in one step.
 - The README MUST list every available CLI command with a brief
   description of what each command does.

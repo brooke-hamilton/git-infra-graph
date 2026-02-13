@@ -89,7 +89,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/brooke-hamilton/grif/graph"
+    "github.com/brooke-hamilton/rad-graph/graph"
 )
 
 func main() {

@@ -15,7 +15,7 @@
 
 **Purpose**: Initialize the Go module, install dependencies, and create the project directory structure.
 
-- [ ] T001 Initialize Go module (go.mod) and add go-git dependency (`github.com/go-git/go-git/v5`) in go.mod
+- [ ] T001 Initialize Go module with `go mod init github.com/brooke-hamilton/rad-graph` and add go-git dependency (`github.com/go-git/go-git/v5`) in go.mod
 - [ ] T002 Create project directory structure per plan.md: `cmd/grif/`, `graph/`, `graph/internal/gitops/`, `testdata/integration/`
 - [ ] T003 [P] Add .gitignore entries for `testdata/integration/` and the `grif` binary
 

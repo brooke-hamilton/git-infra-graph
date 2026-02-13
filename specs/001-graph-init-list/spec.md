@@ -80,6 +80,7 @@ A user wants to remove an infrastructure graph from their repository. They run t
 - **FR-011**: The `list` command MUST verify that it is running inside a valid Git repository; otherwise it MUST fail with a non-zero exit code and a descriptive error on stderr.
 - **FR-012**: The `list` command MUST return an empty result (not an error) when no graphs exist.
 - **FR-013**: The `delete` command MUST accept a graph name as a required argument.
+- **FR-013a**: The `delete` command MUST validate that the graph name is a legal Git ref name component (same rules as FR-002); if invalid, it MUST fail with a non-zero exit code and a descriptive error on stderr before attempting any ref lookup.
 - **FR-014**: The `delete` command MUST verify that it is running inside a valid Git repository; otherwise it MUST fail with a non-zero exit code and a descriptive error on stderr.
 - **FR-015**: The `delete` command MUST verify that `refs/infra/<graph name>` exists; if it does not, the command MUST fail with a non-zero exit code and a descriptive error on stderr.
 - **FR-016**: The `delete` command MUST delete the ref `refs/infra/<graph name>`. It MUST NOT delete or modify any other refs.

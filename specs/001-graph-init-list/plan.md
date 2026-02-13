@@ -18,6 +18,7 @@ Implement the three foundational graph lifecycle commands — `init`, `list`, an
 **Performance Goals**: All commands complete in < 5 seconds on a local repository (per SC-001)
 **Constraints**: No external database; no modification of standard-namespace refs; orphan commits only
 **Scale/Scope**: Single-user CLI tool operating on local Git repositories; hundreds of graphs per repo is a reasonable upper bound
+**Concurrency**: No application-level locking. Concurrent operations rely on Git's native ref-update atomicity (filesystem rename on POSIX, lock files). If additional concurrency protection is needed, it can be added in a future iteration.
 
 ## Constitution Check (Pre-Research)
 
