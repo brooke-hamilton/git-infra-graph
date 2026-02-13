@@ -251,18 +251,18 @@ Source-Commit: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
 The constitution mandates:
 
 - Integration tests use **live Git repositories** (no mocking the object database).
-- Repos are created in `testdata/integration/` (git-ignored).
+- Repos are created in `testdata/` (git-ignored).
 - Each test creates a **uniquely named** subdirectory.
 - Tests run in **parallel** without interference.
 - Tests **clean up** after completion.
 
 ### Decision
 
-**Use `testdata/integration/` with unique subdirectories per test**, as prescribed by the constitution.
+**Use `testdata/` with unique subdirectories per test**, as prescribed by the constitution.
 
 ### Rationale
 
-1. **Constitution compliance**: The constitution (IV, Integration Test Infrastructure) requires a dedicated scratch directory (e.g., `testdata/integration/`) that is git-ignored. Using this directory directly respects the governing document.
+1. **Constitution compliance**: The constitution (IV, Integration Test Infrastructure) requires a dedicated scratch directory (e.g., `testdata/`) that is git-ignored. Using this directory directly respects the governing document.
 
 2. **Post-mortem inspection**: When a test fails, the temporary Git repository is preserved on disk at a known, predictable location inside the project tree. This allows developers to inspect the repo state after failure — a critical debugging capability that `t.TempDir()` cannot provide because it auto-deletes on test completion, even on failure.
 
@@ -275,7 +275,7 @@ The constitution mandates:
 ### Test Setup Pattern
 
 ```go
-const integrationDir = "testdata/integration"
+const integrationDir = "testdata"
 
 func setupTestRepo(t *testing.T) (*git.Repository, string) {
     t.Helper()
@@ -380,4 +380,4 @@ func TestInitGraph(t *testing.T) {
 | 1 | go-git vs git CLI | **go-git** | Pure Go; no runtime dependency; better performance; excellent testability |
 | 2 | Ref name validation | **Manual implementation** | Rules are simple and stable; no Go library exists; enables domain-specific errors |
 | 3 | Commit trailers | **String formatting** | Single trailer type; trivial format; no library needed |
-| 4 | Test repo pattern | **`testdata/integration/` + `git.PlainInit()`** | Constitution-compliant; post-mortem inspection on failure; unique subdirs; cleanup on success only |
+| 4 | Test repo pattern | **`testdata/` + `git.PlainInit()`** | Constitution-compliant; post-mortem inspection on failure; unique subdirs; cleanup on success only |

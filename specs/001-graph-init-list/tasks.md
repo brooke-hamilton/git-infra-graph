@@ -15,9 +15,9 @@
 
 **Purpose**: Initialize the Go module, install dependencies, and create the project directory structure.
 
-- [ ] T001 Initialize Go module with `go mod init github.com/brooke-hamilton/rad-graph` and add go-git dependency (`github.com/go-git/go-git/v5`) in go.mod
-- [ ] T002 Create project directory structure per plan.md: `cmd/grif/`, `graph/`, `graph/internal/gitops/`, `testdata/integration/`
-- [ ] T003 [P] Add .gitignore entries for `testdata/integration/` and the `grif` binary
+- [x] T001 Initialize Go module with `go mod init github.com/brooke-hamilton/rad-graph` and add go-git dependency (`github.com/go-git/go-git/v5`) in go.mod
+- [x] T002 Create project directory structure per plan.md: `cmd/grif/`, `graph/`, `graph/internal/gitops/`, `testdata/`
+- [x] T003 [P] Add .gitignore entries for `testdata/` and the `grif` binary
 
 ---
 
@@ -27,11 +27,11 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 [P] Implement `GraphInfo` type and `ValidateGraphName` function in graph/ref.go per data-model.md validation rules and research.md R2 implementation sketch
-- [ ] T005 [P] Implement low-level Git object helpers (open repo, create empty tree, create orphan commit with trailer, create ref, list refs by prefix, delete ref, resolve HEAD) in graph/internal/gitops/objects.go using go-git plumbing API
-- [ ] T006 [P] Write table-driven unit tests for `ValidateGraphName` covering all validation rules (empty, `@`, leading/trailing dot, `.lock`, `..`, `@{`, control chars, forbidden chars, slash, valid names) in graph/ref_test.go
-- [ ] T007 Write unit tests for gitops helpers (empty tree creation, orphan commit, ref CRUD) in graph/internal/gitops/objects_test.go
-- [ ] T008 Implement shared integration test helper (`setupTestRepo` with unique subdirs, cleanup-on-success, failure path logging) in graph/testhelper_test.go per research.md Q4 pattern
+- [x] T004 [P] Implement `GraphInfo` type and `ValidateGraphName` function in graph/ref.go per data-model.md validation rules and research.md R2 implementation sketch
+- [x] T005 [P] Implement low-level Git object helpers (open repo, create empty tree, create orphan commit with trailer, create ref, list refs by prefix, delete ref, resolve HEAD) in graph/internal/gitops/objects.go using go-git plumbing API
+- [x] T006 [P] Write table-driven unit tests for `ValidateGraphName` covering all validation rules (empty, `@`, leading/trailing dot, `.lock`, `..`, `@{`, control chars, forbidden chars, slash, valid names) in graph/ref_test.go
+- [x] T007 Write unit tests for gitops helpers (empty tree creation, orphan commit, ref CRUD) in graph/internal/gitops/objects_test.go
+- [x] T008 Implement shared integration test helper (`setupTestRepo` with unique subdirs, cleanup-on-success, failure path logging) in graph/testhelper_test.go per research.md Q4 pattern
 
 **Checkpoint**: Foundation ready — user story implementation can now begin.
 
@@ -47,12 +47,12 @@
 
 > Write these tests FIRST, ensure they FAIL before implementation.
 
-- [ ] T009 [US1] Write Init integration tests in graph/graph_test.go: successful init (ref created, commit is orphan, tree is empty, trailer matches HEAD), duplicate name error, invalid name error, not-a-repo error, empty-repo (no commits) error
+- [x] T009 [US1] Write Init integration tests in graph/graph_test.go: successful init (ref created, commit is orphan, tree is empty, trailer matches HEAD), duplicate name error, invalid name error, not-a-repo error, empty-repo (no commits) error
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `Init(repoPath string, name string) error` in graph/graph.go: validate name, open repo, resolve HEAD, check ref does not exist, create empty tree, create orphan commit with `Source-Commit` trailer, create ref at `refs/infra/<name>`
-- [ ] T011 [US1] Implement CLI scaffolding (subcommand routing, `--json` flag) and `init` subcommand in cmd/grif/main.go: parse args, call `graph.Init`, print human/JSON success output to stdout, print errors to stderr, exit code 0/1
+- [x] T010 [US1] Implement `Init(repoPath string, name string) error` in graph/graph.go: validate name, open repo, resolve HEAD, check ref does not exist, create empty tree, create orphan commit with `Source-Commit` trailer, create ref at `refs/infra/<name>`
+- [x] T011 [US1] Implement CLI scaffolding (subcommand routing, `--json` flag) and `init` subcommand in cmd/grif/main.go: parse args, call `graph.Init`, print human/JSON success output to stdout, print errors to stderr, exit code 0/1
 
 **Checkpoint**: User Story 1 is fully functional and independently testable. `go test ./...` passes. `./grif init my-infra` works end-to-end.
 
@@ -68,12 +68,12 @@
 
 > Write these tests FIRST, ensure they FAIL before implementation.
 
-- [ ] T012 [US2] Write List integration tests in graph/graph_test.go: list with multiple graphs (alphabetical order), list with no graphs (empty result, no error), not-a-repo error
+- [x] T012 [US2] Write List integration tests in graph/graph_test.go: list with multiple graphs (alphabetical order), list with no graphs (empty result, no error), not-a-repo error
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Implement `List(repoPath string) ([]GraphInfo, error)` in graph/graph.go: open repo, iterate refs with `refs/infra/` prefix, extract name component, sort alphabetically, return `[]GraphInfo`
-- [ ] T014 [US2] Add `list` subcommand to CLI in cmd/grif/main.go: call `graph.List`, print one name per line (human) or JSON array (JSON mode), empty output for no graphs
+- [x] T013 [US2] Implement `List(repoPath string) ([]GraphInfo, error)` in graph/graph.go: open repo, iterate refs with `refs/infra/` prefix, extract name component, sort alphabetically, return `[]GraphInfo`
+- [x] T014 [US2] Add `list` subcommand to CLI in cmd/grif/main.go: call `graph.List`, print one name per line (human) or JSON array (JSON mode), empty output for no graphs
 
 **Checkpoint**: User Stories 1 AND 2 both work independently. `./grif init` then `./grif list` works end-to-end.
 
@@ -89,12 +89,12 @@
 
 > Write these tests FIRST, ensure they FAIL before implementation.
 
-- [ ] T015 [US3] Write Delete integration tests in graph/graph_test.go: successful delete (ref removed, no longer in list), delete non-existent graph error, invalid name error, not-a-repo error, no standard refs modified after delete
+- [x] T015 [US3] Write Delete integration tests in graph/graph_test.go: successful delete (ref removed, no longer in list), delete non-existent graph error, invalid name error, not-a-repo error, no standard refs modified after delete
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Implement `Delete(repoPath string, name string) error` in graph/graph.go: validate name, open repo, verify ref exists, remove ref at `refs/infra/<name>`, do not delete Git objects
-- [ ] T017 [US3] Add `delete` subcommand to CLI in cmd/grif/main.go: parse args, call `graph.Delete`, print human/JSON success output to stdout, print errors to stderr, exit code 0/1
+- [x] T016 [US3] Implement `Delete(repoPath string, name string) error` in graph/graph.go: validate name, open repo, verify ref exists, remove ref at `refs/infra/<name>`, do not delete Git objects
+- [x] T017 [US3] Add `delete` subcommand to CLI in cmd/grif/main.go: parse args, call `graph.Delete`, print human/JSON success output to stdout, print errors to stderr, exit code 0/1
 
 **Checkpoint**: All three user stories are independently functional. Full lifecycle (init → list → delete → list) works end-to-end.
 
@@ -104,9 +104,9 @@
 
 **Purpose**: Documentation, edge case coverage, and end-to-end validation.
 
-- [ ] T018 [P] Create README.md at repository root with installation instructions (`go install`), command reference for init/list/delete, `--json` flag usage, and usage examples per quickstart.md
-- [ ] T019 [P] Add edge case integration tests in graph/graph_test.go: concurrent init with same name, concurrent delete of same name, ref created outside tool still appears in list, standard-namespace refs unmodified after all operations
-- [ ] T020 Run quickstart.md end-to-end validation: build binary, execute all quickstart scenarios (init, list, delete with human and JSON output, error cases), verify outputs match documented examples
+- [x] T018 [P] Create README.md at repository root with installation instructions (`go install`), command reference for init/list/delete, `--json` flag usage, and usage examples per quickstart.md
+- [x] T019 [P] Add edge case integration tests in graph/graph_test.go: concurrent init with same name, concurrent delete of same name, ref created outside tool still appears in list, standard-namespace refs unmodified after all operations
+- [x] T020 Run quickstart.md end-to-end validation: build binary, execute all quickstart scenarios (init, list, delete with human and JSON output, error cases), verify outputs match documented examples
 
 ---
 

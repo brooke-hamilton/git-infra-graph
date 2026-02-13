@@ -73,7 +73,7 @@ Follow-up TODOs: None
   mocking the Git object database is not permitted for
   integration-level coverage.
 - The repository MUST contain a dedicated integration-test
-  scratch directory (e.g., `testdata/integration/`) that is
+  scratch directory (e.g., `testdata/`) that is
   listed in the project's `.gitignore` so that temporary
   repositories are never committed.
 - Each test MUST create a uniquely named Git repository inside
@@ -120,7 +120,7 @@ Follow-up TODOs: None
 - **Build**: Standard `go build` / `go install` toolchain.
 - **Testing**: `go test` with the standard `testing` package.
   Table-driven tests are preferred. Integration tests use live
-  Git repositories created under `testdata/integration/`
+  Git repositories created under `testdata/`
   (git-ignored).
 - **Linting**: `golangci-lint` with project-level configuration.
 - **License**: MIT.

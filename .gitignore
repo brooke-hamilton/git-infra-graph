@@ -1,0 +1,13 @@
+# Binary
+/grif
+
+# Test scratch directories
+testdata/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.tmp
