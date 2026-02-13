@@ -1,11 +1,10 @@
 <!--
 Sync Impact Report
 ===================
-Version change: 1.0.1 → 1.1.0
-Modified principles:
-  - IV. Test-First Development → materially expanded with
-    integration testing infrastructure requirements
-Added sections: None
+Version change: 1.1.0 → 1.2.0
+Modified sections:
+  - Development Workflow → added README.md requirements
+Added sections: None (added subsection within Development Workflow)
 Removed sections: None
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ no changes needed
@@ -14,7 +13,7 @@ Templates requiring updates:
 Follow-up TODOs: None
 -->
 
-# rad-graph Constitution
+# grif Constitution
 
 ## Core Principles
 
@@ -92,7 +91,7 @@ Follow-up TODOs: None
 ### V. Graph-Layer and Application-Layer Separation
 
 - "Application layer" means any external program that imports
-  the rad-graph Go module and uses it to store graph data in
+  the grif Go module and uses it to store graph data in
   Git. The CLI included in this project is NOT an application
   layer; it is a thin interface to the graph primitives exposed
   by the module.
@@ -138,6 +137,21 @@ Follow-up TODOs: None
 - Each pull request MUST be reviewed for constitution compliance
   as part of the review checklist.
 
+### README.md
+
+- A comprehensive `README.md` MUST be maintained at the
+  repository root.
+- The README MUST include installation instructions using
+  `go install` syntax (e.g.,
+  `go install github.com/brooke-hamilton/grif/cmd/grif@latest`)
+  so that users can compile and install the tool in one step.
+- The README MUST list every available CLI command with a brief
+  description of what each command does.
+- The README MUST include runnable usage examples (command +
+  expected output) for every command.
+- When a command is added, removed, or its interface changes,
+  the README MUST be updated in the same pull request.
+
 ## Governance
 
 - This constitution supersedes all other project practices and
@@ -155,4 +169,4 @@ Follow-up TODOs: None
   constitutional principles. Deviations MUST be justified in the
   PR description and approved explicitly.
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-13 | **Last Amended**: 2026-02-13
+**Version**: 1.2.0 | **Ratified**: 2026-02-13 | **Last Amended**: 2026-02-13

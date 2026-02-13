@@ -81,6 +81,22 @@ Instructions for writing clean, consistent, and accessible Markdown documents ba
 - **MD058**: Surround tables with blank lines
 - **MD060**: Use consistent table column alignment and formatting style
 
+  Incorrect (no spaces around dashes):
+
+  ```markdown
+  | Header 1 | Header 2 |
+  |-------|------|
+  | Cell 1 | Cell 2 |
+  ```
+
+  Correct (spaces around dashes):
+
+  ```markdown
+  | Header 1 | Header 2 |
+  | ------- | ------ |
+  | Cell 1 | Cell 2 |
+  ```
+
 ## Horizontal Rules
 
 - **MD035**: Use a consistent horizontal rule style throughout the document (e.g., `---`)
