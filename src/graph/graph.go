@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brooke-hamilton/rad-graph/graph/internal/gitops"
+	"github.com/brooke-hamilton/rad-graph/src/graph/internal/gitops"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
