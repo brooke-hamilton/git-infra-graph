@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -252,5 +253,316 @@ func TestListRefsByPrefix(t *testing.T) {
 	}
 	if len(names) != 3 {
 		t.Fatalf("expected 3 refs, got %d", len(names))
+	}
+}
+
+func TestCreateBlob(t *testing.T) {
+	t.Parallel()
+	repo, _ := initTestRepo(t)
+
+	t.Run("creates blob with content", func(t *testing.T) {
+		t.Parallel()
+		data := []byte("10.0.0.0/16")
+		hash, err := CreateBlob(repo, data)
+		if err != nil {
+			t.Fatalf("CreateBlob returned error: %v", err)
+		}
+		if hash.IsZero() {
+			t.Fatal("CreateBlob returned zero hash")
+		}
+	})
+
+	t.Run("creates empty blob", func(t *testing.T) {
+		t.Parallel()
+		hash, err := CreateBlob(repo, []byte{})
+		if err != nil {
+			t.Fatalf("CreateBlob returned error: %v", err)
+		}
+		if hash.IsZero() {
+			t.Fatal("CreateBlob returned zero hash for empty blob")
+		}
+	})
+}
+
+func TestReadBlobContent(t *testing.T) {
+	t.Parallel()
+	repo, _ := initTestRepo(t)
+
+	data := []byte("hello world")
+	hash, err := CreateBlob(repo, data)
+	if err != nil {
+		t.Fatalf("CreateBlob failed: %v", err)
+	}
+
+	content, err := ReadBlobContent(repo, hash)
+	if err != nil {
+		t.Fatalf("ReadBlobContent returned error: %v", err)
+	}
+	if string(content) != string(data) {
+		t.Errorf("ReadBlobContent = %q, want %q", string(content), string(data))
+	}
+}
+
+func TestSetTreeEntry(t *testing.T) {
+	t.Parallel()
+	repo, _ := initTestRepo(t)
+
+	emptyTree, err := CreateEmptyTree(repo)
+	if err != nil {
+		t.Fatalf("CreateEmptyTree failed: %v", err)
+	}
+
+	blobHash, err := CreateBlob(repo, []byte("data"))
+	if err != nil {
+		t.Fatalf("CreateBlob failed: %v", err)
+	}
+
+	t.Run("adds entry to empty tree", func(t *testing.T) {
+		t.Parallel()
+		newHash, err := SetTreeEntry(repo, emptyTree, object.TreeEntry{
+			Name: "file.txt",
+			Mode: filemode.Regular,
+			Hash: blobHash,
+		})
+		if err != nil {
+			t.Fatalf("SetTreeEntry returned error: %v", err)
+		}
+		if newHash == emptyTree {
+			t.Error("SetTreeEntry returned same hash as empty tree")
+		}
+
+		tree, err := GetTreeByHash(repo, newHash)
+		if err != nil {
+			t.Fatalf("GetTreeByHash failed: %v", err)
+		}
+		if len(tree.Entries) != 1 {
+			t.Fatalf("tree has %d entries, want 1", len(tree.Entries))
+		}
+		if tree.Entries[0].Name != "file.txt" {
+			t.Errorf("entry name = %q, want %q", tree.Entries[0].Name, "file.txt")
+		}
+	})
+
+	t.Run("replaces existing entry", func(t *testing.T) {
+		t.Parallel()
+		firstHash, err := SetTreeEntry(repo, emptyTree, object.TreeEntry{
+			Name: "file.txt",
+			Mode: filemode.Regular,
+			Hash: blobHash,
+		})
+		if err != nil {
+			t.Fatalf("first SetTreeEntry failed: %v", err)
+		}
+
+		newBlob, _ := CreateBlob(repo, []byte("updated"))
+		secondHash, err := SetTreeEntry(repo, firstHash, object.TreeEntry{
+			Name: "file.txt",
+			Mode: filemode.Regular,
+			Hash: newBlob,
+		})
+		if err != nil {
+			t.Fatalf("second SetTreeEntry failed: %v", err)
+		}
+
+		tree, _ := GetTreeByHash(repo, secondHash)
+		if len(tree.Entries) != 1 {
+			t.Fatalf("tree has %d entries, want 1", len(tree.Entries))
+		}
+		if tree.Entries[0].Hash != newBlob {
+			t.Error("entry was not replaced")
+		}
+	})
+}
+
+func TestRemoveTreeEntry(t *testing.T) {
+	t.Parallel()
+	repo, _ := initTestRepo(t)
+
+	emptyTree, _ := CreateEmptyTree(repo)
+	blobHash, _ := CreateBlob(repo, []byte("data"))
+
+	treeWithEntry, err := SetTreeEntry(repo, emptyTree, object.TreeEntry{
+		Name: "file.txt",
+		Mode: filemode.Regular,
+		Hash: blobHash,
+	})
+	if err != nil {
+		t.Fatalf("SetTreeEntry failed: %v", err)
+	}
+
+	t.Run("removes existing entry", func(t *testing.T) {
+		t.Parallel()
+		newHash, err := RemoveTreeEntry(repo, treeWithEntry, "file.txt")
+		if err != nil {
+			t.Fatalf("RemoveTreeEntry returned error: %v", err)
+		}
+
+		tree, _ := GetTreeByHash(repo, newHash)
+		if len(tree.Entries) != 0 {
+			t.Errorf("tree has %d entries, want 0", len(tree.Entries))
+		}
+	})
+
+	t.Run("returns error for missing entry", func(t *testing.T) {
+		t.Parallel()
+		_, err := RemoveTreeEntry(repo, treeWithEntry, "nonexistent")
+		if err == nil {
+			t.Fatal("RemoveTreeEntry should fail for missing entry")
+		}
+	})
+}
+
+func TestStagingRef(t *testing.T) {
+	t.Parallel()
+	repo, _ := initTestRepo(t)
+
+	emptyTree, _ := CreateEmptyTree(repo)
+
+	t.Run("write and read staging ref", func(t *testing.T) {
+		t.Parallel()
+		err := WriteStagingRef(repo, "test-graph", emptyTree)
+		if err != nil {
+			t.Fatalf("WriteStagingRef returned error: %v", err)
+		}
+
+		if !RefExists(repo, "refs/infra-stage/test-graph") {
+			t.Fatal("staging ref does not exist after write")
+		}
+	})
+
+	t.Run("delete staging ref", func(t *testing.T) {
+		t.Parallel()
+		if err := WriteStagingRef(repo, "del-stage", emptyTree); err != nil {
+			t.Fatalf("WriteStagingRef failed: %v", err)
+		}
+
+		if err := DeleteStagingRef(repo, "del-stage"); err != nil {
+			t.Fatalf("DeleteStagingRef returned error: %v", err)
+		}
+
+		if RefExists(repo, "refs/infra-stage/del-stage") {
+			t.Error("staging ref still exists after delete")
+		}
+	})
+}
+
+func TestResolveRootTree(t *testing.T) {
+	t.Parallel()
+	repo, _ := initTestRepo(t)
+
+	// Create a graph ref with a commit containing an empty tree
+	emptyTree, _ := CreateEmptyTree(repo)
+	sig := DefaultSignature()
+	commitHash, _ := CreateOrphanCommit(repo, emptyTree, "test\n", sig)
+	if err := CreateRef(repo, "refs/infra/resolve-test", commitHash); err != nil {
+		t.Fatalf("CreateRef failed: %v", err)
+	}
+
+	t.Run("resolves from committed tree when no staging", func(t *testing.T) {
+		t.Parallel()
+		hash, err := ResolveRootTree(repo, "resolve-test")
+		if err != nil {
+			t.Fatalf("ResolveRootTree returned error: %v", err)
+		}
+		if hash != emptyTree {
+			t.Errorf("ResolveRootTree = %s, want %s (empty tree)", hash, emptyTree)
+		}
+	})
+
+	t.Run("resolves from staging ref when present", func(t *testing.T) {
+		t.Parallel()
+		blobHash, _ := CreateBlob(repo, []byte("staged"))
+		stagedTree, _ := StoreTree(repo, []object.TreeEntry{
+			{Name: "staged.txt", Mode: filemode.Regular, Hash: blobHash},
+		})
+
+		if err := WriteStagingRef(repo, "resolve-test", stagedTree); err != nil {
+			t.Fatalf("WriteStagingRef failed: %v", err)
+		}
+
+		hash, err := ResolveRootTree(repo, "resolve-test")
+		if err != nil {
+			t.Fatalf("ResolveRootTree returned error: %v", err)
+		}
+		if hash != stagedTree {
+			t.Errorf("ResolveRootTree = %s, want %s (staged tree)", hash, stagedTree)
+		}
+
+		// Clean up staging ref for other subtests
+		DeleteStagingRef(repo, "resolve-test")
+	})
+
+	t.Run("returns error for missing graph", func(t *testing.T) {
+		t.Parallel()
+		_, err := ResolveRootTree(repo, "nonexistent")
+		if err == nil {
+			t.Fatal("ResolveRootTree should fail for missing graph")
+		}
+	})
+}
+
+func TestCreateCommit(t *testing.T) {
+	t.Parallel()
+	repo, _ := initTestRepo(t)
+
+	emptyTree, _ := CreateEmptyTree(repo)
+	sig := DefaultSignature()
+
+	t.Run("creates orphan commit (empty parents)", func(t *testing.T) {
+		t.Parallel()
+		hash, err := CreateCommit(repo, emptyTree, []plumbing.Hash{}, "orphan\n", sig)
+		if err != nil {
+			t.Fatalf("CreateCommit returned error: %v", err)
+		}
+
+		commit, _ := repo.CommitObject(hash)
+		if len(commit.ParentHashes) != 0 {
+			t.Errorf("commit has %d parents, want 0", len(commit.ParentHashes))
+		}
+	})
+
+	t.Run("creates commit with parent", func(t *testing.T) {
+		t.Parallel()
+		parentHash, _ := CreateCommit(repo, emptyTree, []plumbing.Hash{}, "parent\n", sig)
+		childHash, err := CreateCommit(repo, emptyTree, []plumbing.Hash{parentHash}, "child\n", sig)
+		if err != nil {
+			t.Fatalf("CreateCommit with parent returned error: %v", err)
+		}
+
+		commit, _ := repo.CommitObject(childHash)
+		if len(commit.ParentHashes) != 1 {
+			t.Fatalf("commit has %d parents, want 1", len(commit.ParentHashes))
+		}
+		if commit.ParentHashes[0] != parentHash {
+			t.Errorf("parent hash = %s, want %s", commit.ParentHashes[0], parentHash)
+		}
+	})
+}
+
+func TestUpdateRef(t *testing.T) {
+	t.Parallel()
+	repo, _ := initTestRepo(t)
+
+	headHash, _ := ResolveHEAD(repo)
+
+	// Create initial ref
+	if err := CreateRef(repo, "refs/infra/update-test", headHash); err != nil {
+		t.Fatalf("CreateRef failed: %v", err)
+	}
+
+	// Create a new commit to update to
+	emptyTree, _ := CreateEmptyTree(repo)
+	sig := DefaultSignature()
+	newHash, _ := CreateCommit(repo, emptyTree, []plumbing.Hash{}, "new\n", sig)
+
+	// Update the ref
+	if err := UpdateRef(repo, "refs/infra/update-test", newHash); err != nil {
+		t.Fatalf("UpdateRef returned error: %v", err)
+	}
+
+	// Verify the ref was updated
+	ref, _ := repo.Storer.Reference(plumbing.ReferenceName("refs/infra/update-test"))
+	if ref.Hash() != newHash {
+		t.Errorf("ref hash = %s, want %s", ref.Hash(), newHash)
 	}
 }

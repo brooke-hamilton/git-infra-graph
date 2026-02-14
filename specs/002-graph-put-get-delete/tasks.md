@@ -17,7 +17,7 @@
 
 **Purpose**: Create new source files with type definitions required by all subsequent phases
 
-- [ ] T001 Create src/graph/node.go with NodeType constants (BlobNode, TreeNode), NodeResult, NodeContent, NodeEntry, StatusChange, StatusResult, CommitResult types, and stageRefPrefix constant per contracts/go-api.md
+- [X] T001 Create src/graph/node.go with NodeType constants (BlobNode, TreeNode), NodeResult, NodeContent, NodeEntry, StatusChange, StatusResult, CommitResult types, and stageRefPrefix constant per contracts/go-api.md
 
 ---
 
@@ -27,13 +27,13 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Implement ParseNodePath function in src/graph/node.go (trim leading/trailing slashes, split on `/`, validate non-empty, validate no empty segments, validate graph name via ValidateGraphName, return graphName and segments)
-- [ ] T003 [P] Create src/graph/node_test.go with table-driven tests for ParseNodePath (empty path, slashes-only, empty segments like `a//b`, leading/trailing slashes, single segment, multi-segment, invalid graph name)
-- [ ] T004 [P] Add CreateBlob and ReadBlobContent helpers in src/graph/internal/gitops/objects.go (CreateBlob writes a blob object and returns its hash; ReadBlobContent reads blob bytes by hash)
-- [ ] T005 Add tree manipulation helpers in src/graph/internal/gitops/objects.go (GetTreeByHash retrieves a tree by hash; SetTreeEntry adds or replaces an entry in a tree and returns the new tree hash; RemoveTreeEntry removes an entry from a tree and returns the new tree hash)
-- [ ] T006 Add staging ref helpers in src/graph/internal/gitops/objects.go (WriteStagingRef creates or updates `refs/infra-stage/<name>` to point to a tree hash; DeleteStagingRef removes a staging ref; ResolveRootTree reads from staging ref if it exists, else from the graph ref committed tree hash)
-- [ ] T007 Add CreateCommit (generalized with optional parent hashes) and UpdateRef (unconditional upsert) helpers in src/graph/internal/gitops/objects.go, refactoring CreateOrphanCommit to delegate to CreateCommit with empty parents
-- [ ] T008 [P] Add unit tests for new gitops helpers (CreateBlob, ReadBlobContent, tree manipulation, staging ref operations) in src/graph/internal/gitops/objects_test.go
+- [X] T002 Implement ParseNodePath function in src/graph/node.go (trim leading/trailing slashes, split on `/`, validate non-empty, validate no empty segments, validate graph name via ValidateGraphName, return graphName and segments)
+- [X] T003 [P] Create src/graph/node_test.go with table-driven tests for ParseNodePath (empty path, slashes-only, empty segments like `a//b`, leading/trailing slashes, single segment, multi-segment, invalid graph name)
+- [X] T004 [P] Add CreateBlob and ReadBlobContent helpers in src/graph/internal/gitops/objects.go (CreateBlob writes a blob object and returns its hash; ReadBlobContent reads blob bytes by hash)
+- [X] T005 Add tree manipulation helpers in src/graph/internal/gitops/objects.go (GetTreeByHash retrieves a tree by hash; SetTreeEntry adds or replaces an entry in a tree and returns the new tree hash; RemoveTreeEntry removes an entry from a tree and returns the new tree hash)
+- [X] T006 Add staging ref helpers in src/graph/internal/gitops/objects.go (WriteStagingRef creates or updates `refs/infra-stage/<name>` to point to a tree hash; DeleteStagingRef removes a staging ref; ResolveRootTree reads from staging ref if it exists, else from the graph ref committed tree hash)
+- [X] T007 Add CreateCommit (generalized with optional parent hashes) and UpdateRef (unconditional upsert) helpers in src/graph/internal/gitops/objects.go, refactoring CreateOrphanCommit to delegate to CreateCommit with empty parents
+- [X] T008 [P] Add unit tests for new gitops helpers (CreateBlob, ReadBlobContent, tree manipulation, staging ref operations) in src/graph/internal/gitops/objects_test.go
 
 **Checkpoint**: Foundation ready — all gitops primitives and path utilities are in place for user story implementation
 
@@ -49,12 +49,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T009 [US1] Write integration tests for Put blob operations in src/graph/graph_test.go: put a blob at a single-segment node path, put a blob at a multi-segment path (verify auto-created intermediate trees), replace an existing blob (verify new hash), verify NodeResult fields (ID, Path, Type), verify staging ref is created, put with empty blob content `[]byte{}`
+- [X] T009 [US1] Write integration tests for Put blob operations in src/graph/graph_test.go: put a blob at a single-segment node path, put a blob at a multi-segment path (verify auto-created intermediate trees), replace an existing blob (verify new hash), verify NodeResult fields (ID, Path, Type), verify staging ref is created, put with empty blob content `[]byte{}`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement walkAndRebuild helper in src/graph/graph.go (top-down walk collecting parent tree stack, mutation at target, bottom-up tree rebuild) and the Put function handling blob creation/replacement with auto-parent-tree creation and staging ref write
-- [ ] T011 [US1] Add put command to CLI in src/cmd/grif/main.go (--data flag for inline content, --file flag for file content, piped stdin detection, mutually exclusive input validation, --json flag, human-readable output format `Put blob at "<path>" (id: <short-hash>)`)
+- [X] T010 [US1] Implement walkAndRebuild helper in src/graph/graph.go (top-down walk collecting parent tree stack, mutation at target, bottom-up tree rebuild) and the Put function handling blob creation/replacement with auto-parent-tree creation and staging ref write
+- [X] T011 [US1] Add put command to CLI in src/cmd/grif/main.go (--data flag for inline content, --file flag for file content, piped stdin detection, mutually exclusive input validation, --json flag, human-readable output format `Put blob at "<path>" (id: <short-hash>)`)
 
 **Checkpoint**: User Story 1 is fully functional — blobs can be stored at any valid path and verified via return value
 
@@ -70,11 +70,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [US4] Write integration tests for Put tree (nil blob) in src/graph/graph_test.go: create a tree with nil blob, no-op on existing tree (verify children preserved), tree-to-blob error (put non-nil blob on existing tree), blob-to-tree error (put nil blob on existing blob), put blob under explicitly created tree
+- [X] T012 [US4] Write integration tests for Put tree (nil blob) in src/graph/graph_test.go: create a tree with nil blob, no-op on existing tree (verify children preserved), tree-to-blob error (put non-nil blob on existing tree), blob-to-tree error (put nil blob on existing blob), put blob under explicitly created tree
 
 ### Implementation for User Story 4
 
-- [ ] T013 [US4] Extend Put function in src/graph/graph.go to handle nil blob: create tree node when blob is nil, preserve existing trees and children on no-op, return error for tree-to-blob conversion (FR-006), return error for blob-to-tree conversion (FR-007)
+- [X] T013 [US4] Extend Put function in src/graph/graph.go to handle nil blob: create tree node when blob is nil, preserve existing trees and children on no-op, return error for tree-to-blob conversion (FR-006), return error for blob-to-tree conversion (FR-007)
 
 **Checkpoint**: Put handles both blob and tree creation — the full write API is complete
 
@@ -90,12 +90,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T014 [US2] Write integration tests for Get in src/graph/graph_test.go: get blob content, get tree children listing (verify sorted by name), node not found error, blob traversal error, verify Get reads staged (uncommitted) changes, verify NodeContent fields (ID, Path, Type, Blob, Children)
+- [X] T014 [US2] Write integration tests for Get in src/graph/graph_test.go: get blob content, get tree children listing (verify sorted by name), node not found error, blob traversal error, verify Get reads staged (uncommitted) changes, verify NodeContent fields (ID, Path, Type, Blob, Children)
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement Get function in src/graph/graph.go (parse path, resolve root tree from staging ref or committed tree, walk to target, return NodeContent with blob bytes or children listing)
-- [ ] T016 [US2] Add get command to CLI in src/cmd/grif/main.go (raw blob content to stdout in human mode, tabular tree children listing with TYPE/NAME/ID columns, --json flag with `content` field for blobs and `children` array for trees)
+- [X] T015 [US2] Implement Get function in src/graph/graph.go (parse path, resolve root tree from staging ref or committed tree, walk to target, return NodeContent with blob bytes or children listing)
+- [X] T016 [US2] Add get command to CLI in src/cmd/grif/main.go (raw blob content to stdout in human mode, tabular tree children listing with TYPE/NAME/ID columns, --json flag with `content` field for blobs and `children` array for trees)
 
 **Checkpoint**: Users can store data and read it back — the read path is complete
 
@@ -111,12 +111,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [US3] Write integration tests for DeleteNode in src/graph/graph_test.go: delete a blob, recursive tree delete (verify all descendants removed), node not found error, blob traversal error, parent tree preserved after child deletion, empty parent not auto-pruned, verify delete blob then put tree at same path (and vice versa) for type change workflow
+- [X] T017 [US3] Write integration tests for DeleteNode in src/graph/graph_test.go: delete a blob, recursive tree delete (verify all descendants removed), node not found error, blob traversal error, parent tree preserved after child deletion, empty parent not auto-pruned, verify delete blob then put tree at same path (and vice versa) for type change workflow
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Implement DeleteNode function in src/graph/graph.go (parse path, walk to target using walkAndRebuild with remove mutation, update staging ref, return error for not-found and blob traversal)
-- [ ] T019 [US3] Add rm command to CLI in src/cmd/grif/main.go (--json flag, human output `Removed "<path>"` with descendant count for trees, JSON output with `path`, `removed`, `type`, `descendants` fields). **Note**: The CLI must call Get before DeleteNode to determine node type and count descendants, since DeleteNode returns only an error.
+- [X] T018 [US3] Implement DeleteNode function in src/graph/graph.go (parse path, walk to target using walkAndRebuild with remove mutation, update staging ref, return error for not-found and blob traversal)
+- [X] T019 [US3] Add rm command to CLI in src/cmd/grif/main.go (--json flag, human output `Removed "<path>"` with descendant count for trees, JSON output with `path`, `removed`, `type`, `descendants` fields). **Note**: The CLI must call Get before DeleteNode to determine node type and count descendants, since DeleteNode returns only an error.
 
 **Checkpoint**: Full CRUD lifecycle is operational — nodes can be created, read, and deleted
 
@@ -130,15 +130,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T020 Write integration tests for Commit in src/graph/graph_test.go: commit staged changes (verify new commit on graph ref, staging ref deleted, CommitResult fields), commit with custom message (verify message body), commit with default message (verify Source-Commit trailer), no staged changes error, commit with parent (verify linear history)
-- [ ] T021 [P] Write integration tests for Status in src/graph/graph_test.go: status with additions, status with modifications, status with deletions, status with mixed changes, empty status (no changes returns empty slice not error), status with no staging ref
+- [X] T020 Write integration tests for Commit in src/graph/graph_test.go: commit staged changes (verify new commit on graph ref, staging ref deleted, CommitResult fields), commit with custom message (verify message body), commit with default message (verify Source-Commit trailer), no staged changes error, commit with parent (verify linear history)
+- [X] T021 [P] Write integration tests for Status in src/graph/graph_test.go: status with additions, status with modifications, status with deletions, status with mixed changes, empty status (no changes returns empty slice not error), status with no staging ref
 
 ### Implementation
 
-- [ ] T022 Implement Commit function in src/graph/graph.go (read staging ref tree, resolve HEAD for Source-Commit trailer, create commit with previous graph commit as parent, update graph ref, delete staging ref, return CommitResult)
-- [ ] T023 Implement Status function in src/graph/graph.go (resolve committed tree and staged tree, use object.DiffTree to compare, map merkletrie.Insert/Delete/Modify to StatusChange entries, return empty Changes slice when no staging ref exists)
-- [ ] T024 Add commit command to CLI in src/cmd/grif/main.go (--message flag, --json flag, human output `Committed graph "<name>" (commit: <short-hash>)`)
-- [ ] T025 Add status command to CLI in src/cmd/grif/main.go (--json flag, human output listing changes with `added:/modified:/deleted:` prefixes, `No uncommitted changes` message when empty, exit code 0 for both cases)
+- [X] T022 Implement Commit function in src/graph/graph.go (read staging ref tree, resolve HEAD for Source-Commit trailer, create commit with previous graph commit as parent, update graph ref, delete staging ref, return CommitResult)
+- [X] T023 Implement Status function in src/graph/graph.go (resolve committed tree and staged tree, use object.DiffTree to compare, map merkletrie.Insert/Delete/Modify to StatusChange entries, return empty Changes slice when no staging ref exists)
+- [X] T024 Add commit command to CLI in src/cmd/grif/main.go (--message flag, --json flag, human output `Committed graph "<name>" (commit: <short-hash>)`)
+- [X] T025 Add status command to CLI in src/cmd/grif/main.go (--json flag, human output listing changes with `added:/modified:/deleted:` prefixes, `No uncommitted changes` message when empty, exit code 0 for both cases)
 
 **Checkpoint**: Complete workflow operational — put, get, rm, commit, and status all functional
 
@@ -148,10 +148,10 @@
 
 **Purpose**: Documentation, validation, and refinements that span multiple user stories
 
-- [ ] T026 Update README.md with put, get, rm, commit, and status command documentation including usage examples and flag descriptions
-- [ ] T027 [P] Update Makefile example and example-report targets to demonstrate the put/get/commit workflow
-- [ ] T028 [P] Run quickstart.md end-to-end validation (build grif, execute all quickstart scenarios, verify outputs match expected)
-- [ ] T029 [P] Validate SC-007 performance criterion (operations complete within 2 seconds for graphs containing up to 1,000 nodes) by manual inspection or optional benchmark test
+- [X] T026 Update README.md with put, get, rm, commit, and status command documentation including usage examples and flag descriptions
+- [X] T027 [P] Update Makefile example and example-report targets to demonstrate the put/get/commit workflow
+- [X] T028 [P] Run quickstart.md end-to-end validation (build grif, execute all quickstart scenarios, verify outputs match expected)
+- [X] T029 [P] Validate SC-007 performance criterion (operations complete within 2 seconds for graphs containing up to 1,000 nodes) by manual inspection or optional benchmark test
 
 ---
 
