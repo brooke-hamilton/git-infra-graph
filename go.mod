@@ -1,4 +1,4 @@
-module github.com/brooke-hamilton/rad-graph
+module github.com/brooke-hamilton/git-infra-graph
 
 go 1.26.0
 
