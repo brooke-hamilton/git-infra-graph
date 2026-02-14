@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -105,7 +106,7 @@ func TestParseNodePath(t *testing.T) {
 				if err == nil {
 					t.Fatalf("ParseNodePath(%q) returned no error, want error containing %q", tt.input, tt.wantErr)
 				}
-				if !contains(err.Error(), tt.wantErr) {
+				if !strings.Contains(err.Error(), tt.wantErr) {
 					t.Errorf("ParseNodePath(%q) error = %q, want error containing %q", tt.input, err.Error(), tt.wantErr)
 				}
 				return
@@ -132,18 +133,4 @@ func TestParseNodePath(t *testing.T) {
 			}
 		})
 	}
-}
-
-// contains checks if s contains substr.
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchString(s, substr)
-}
-
-func searchString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

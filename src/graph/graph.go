@@ -299,8 +299,12 @@ func Put(repoPath string, path string, blob []byte) (*NodeResult, error) {
 	}, nil
 }
 
-// findEntry looks up a tree entry by name, returning nil if not found.
+// findEntry looks up a tree entry by name, returning nil if not found
+// or if tree is nil.
 func findEntry(tree *object.Tree, name string) *object.TreeEntry {
+	if tree == nil {
+		return nil
+	}
 	for i := range tree.Entries {
 		if tree.Entries[i].Name == name {
 			return &tree.Entries[i]
@@ -544,8 +548,7 @@ func Commit(repoPath string, graphName string, message string) (*CommitResult, e
 	}
 
 	// Read staging ref
-	stageRefName := stageRefPrefix + graphName
-	stageRef, err := repo.Storer.Reference(plumbing.ReferenceName(stageRefName))
+	stageRef, err := repo.Storer.Reference(plumbing.ReferenceName(stageRefName(graphName)))
 	if err != nil {
 		return nil, fmt.Errorf("no staged changes for graph %q", graphName)
 	}
@@ -623,8 +626,7 @@ func Status(repoPath string, graphName string) (*StatusResult, error) {
 	}
 
 	// Check for staging ref
-	stageRefName := stageRefPrefix + graphName
-	stageRef, err := repo.Storer.Reference(plumbing.ReferenceName(stageRefName))
+	stageRef, err := repo.Storer.Reference(plumbing.ReferenceName(stageRefName(graphName)))
 	if err != nil {
 		// No staging ref → no changes
 		return &StatusResult{
@@ -669,7 +671,7 @@ func diffTreesRecursive(store storer.EncodedObjectStorer, fromTree, toTree *obje
 
 		switch action {
 		case merkletrie.Insert:
-			entry := findEntryInTree(toTree, change.To.Name)
+			entry := findEntry(toTree, change.To.Name)
 			path := joinPath(prefix, change.To.Name)
 			if entry != nil && entry.Mode == filemode.Dir {
 				// Recurse into the new tree to report all leaf additions
@@ -687,7 +689,7 @@ func diffTreesRecursive(store storer.EncodedObjectStorer, fromTree, toTree *obje
 			}
 
 		case merkletrie.Delete:
-			entry := findEntryInTree(fromTree, change.From.Name)
+			entry := findEntry(fromTree, change.From.Name)
 			path := joinPath(prefix, change.From.Name)
 			if entry != nil && entry.Mode == filemode.Dir {
 				// Recurse into the removed tree to report all leaf deletions
@@ -706,8 +708,8 @@ func diffTreesRecursive(store storer.EncodedObjectStorer, fromTree, toTree *obje
 
 		case merkletrie.Modify:
 			// Both sides exist. Check if they are trees (recurse) or blobs (leaf).
-			fromEntry := findEntryInTree(fromTree, change.From.Name)
-			toEntry := findEntryInTree(toTree, change.To.Name)
+			fromEntry := findEntry(fromTree, change.From.Name)
+			toEntry := findEntry(toTree, change.To.Name)
 			path := joinPath(prefix, change.To.Name)
 
 			fromIsTree := fromEntry != nil && fromEntry.Mode == filemode.Dir
@@ -783,19 +785,6 @@ func collectAllLeaves(store storer.EncodedObjectStorer, tree *object.Tree, prefi
 		}
 	}
 	return result, nil
-}
-
-// findEntryInTree looks up a tree entry by name in a tree object.
-func findEntryInTree(tree *object.Tree, name string) *object.TreeEntry {
-	if tree == nil {
-		return nil
-	}
-	for i := range tree.Entries {
-		if tree.Entries[i].Name == name {
-			return &tree.Entries[i]
-		}
-	}
-	return nil
 }
 
 // joinPath joins a prefix and name with "/", handling empty prefix.

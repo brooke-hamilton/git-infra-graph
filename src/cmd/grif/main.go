@@ -17,6 +17,11 @@ func main() {
 	}
 
 	command := os.Args[1]
+	if command == "--help" || command == "-h" {
+		printUsage()
+		return
+	}
+
 	jsonMode := hasFlag("--json")
 
 	switch command {
@@ -43,9 +48,18 @@ func main() {
 }
 
 func runInit(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printInitUsage()
+		return
+	}
+
 	args := positionalArgs()
 	if len(args) < 1 {
-		printError(jsonMode, "init requires a graph name")
+		printInitUsage()
+		os.Exit(1)
+	}
+	if len(args) > 1 {
+		printError(jsonMode, fmt.Sprintf("init expects 1 argument, got %d", len(args)))
 		os.Exit(1)
 	}
 	name := args[0]
@@ -76,6 +90,17 @@ func runInit(jsonMode bool) {
 }
 
 func runList(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printListUsage()
+		return
+	}
+
+	args := positionalArgs()
+	if len(args) > 0 {
+		printError(jsonMode, fmt.Sprintf("list expects no arguments, got %d", len(args)))
+		os.Exit(1)
+	}
+
 	repoPath := "."
 
 	graphs, err := graph.List(repoPath)
@@ -99,9 +124,18 @@ func runList(jsonMode bool) {
 }
 
 func runDelete(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printDeleteUsage()
+		return
+	}
+
 	args := positionalArgs()
 	if len(args) < 1 {
-		printError(jsonMode, "delete requires a graph name")
+		printDeleteUsage()
+		os.Exit(1)
+	}
+	if len(args) > 1 {
+		printError(jsonMode, fmt.Sprintf("delete expects 1 argument, got %d", len(args)))
 		os.Exit(1)
 	}
 	name := args[0]
@@ -113,7 +147,7 @@ func runDelete(jsonMode bool) {
 	}
 
 	if jsonMode {
-		out, _ := json.Marshal(map[string]interface{}{
+		out, _ := json.Marshal(map[string]any{
 			"name":    name,
 			"deleted": true,
 		})
@@ -124,9 +158,18 @@ func runDelete(jsonMode bool) {
 }
 
 func runPut(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printPutUsage()
+		return
+	}
+
 	args := positionalArgs()
 	if len(args) < 1 {
-		printError(jsonMode, "put requires a path")
+		printPutUsage()
+		os.Exit(1)
+	}
+	if len(args) > 1 {
+		printError(jsonMode, fmt.Sprintf("put expects 1 argument, got %d", len(args)))
 		os.Exit(1)
 	}
 	nodePath := args[0]
@@ -198,9 +241,18 @@ func runPut(jsonMode bool) {
 }
 
 func runGet(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printGetUsage()
+		return
+	}
+
 	args := positionalArgs()
 	if len(args) < 1 {
-		printError(jsonMode, "get requires a path")
+		printGetUsage()
+		os.Exit(1)
+	}
+	if len(args) > 1 {
+		printError(jsonMode, fmt.Sprintf("get expects 1 argument, got %d", len(args)))
 		os.Exit(1)
 	}
 	nodePath := args[0]
@@ -232,9 +284,18 @@ func runGet(jsonMode bool) {
 }
 
 func runRm(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printRmUsage()
+		return
+	}
+
 	args := positionalArgs()
 	if len(args) < 1 {
-		printError(jsonMode, "rm requires a path")
+		printRmUsage()
+		os.Exit(1)
+	}
+	if len(args) > 1 {
+		printError(jsonMode, fmt.Sprintf("rm expects 1 argument, got %d", len(args)))
 		os.Exit(1)
 	}
 	nodePath := args[0]
@@ -254,7 +315,7 @@ func runRm(jsonMode bool) {
 	}
 
 	if jsonMode {
-		result := map[string]interface{}{
+		result := map[string]any{
 			"path":    nodePath,
 			"removed": true,
 		}
@@ -290,13 +351,39 @@ func countDescendants(repoPath string, basePath string, content *graph.NodeConte
 }
 
 func runCommit(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printCommitUsage()
+		return
+	}
+
 	args := positionalArgs()
-	if len(args) < 1 {
-		printError(jsonMode, "commit requires a graph name")
+	if len(args) > 1 {
+		printError(jsonMode, fmt.Sprintf("commit expects at most 1 argument, got %d", len(args)))
 		os.Exit(1)
 	}
-	graphName := args[0]
 	repoPath := "."
+
+	var graphName string
+	if len(args) == 1 {
+		graphName = args[0]
+	} else {
+		graphs, err := graph.List(repoPath)
+		if err != nil {
+			printError(jsonMode, err.Error())
+			os.Exit(1)
+		}
+
+		switch len(graphs) {
+		case 0:
+			printError(jsonMode, "no graphs found")
+			os.Exit(1)
+		case 1:
+			graphName = graphs[0].Name
+		default:
+			printError(jsonMode, "multiple graphs exist; specify a graph name")
+			os.Exit(1)
+		}
+	}
 
 	message := flagValue("--message")
 
@@ -319,13 +406,39 @@ func runCommit(jsonMode bool) {
 }
 
 func runStatus(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printStatusUsage()
+		return
+	}
+
 	args := positionalArgs()
-	if len(args) < 1 {
-		printError(jsonMode, "status requires a graph name")
+	if len(args) > 1 {
+		printError(jsonMode, fmt.Sprintf("status expects at most 1 argument, got %d", len(args)))
 		os.Exit(1)
 	}
-	graphName := args[0]
 	repoPath := "."
+
+	var graphName string
+	if len(args) == 1 {
+		graphName = args[0]
+	} else {
+		graphs, err := graph.List(repoPath)
+		if err != nil {
+			printError(jsonMode, err.Error())
+			os.Exit(1)
+		}
+
+		switch len(graphs) {
+		case 0:
+			printError(jsonMode, "no graphs found")
+			os.Exit(1)
+		case 1:
+			graphName = graphs[0].Name
+		default:
+			printError(jsonMode, "multiple graphs exist; specify a graph name")
+			os.Exit(1)
+		}
+	}
 
 	result, err := graph.Status(repoPath, graphName)
 	if err != nil {
@@ -349,6 +462,8 @@ func runStatus(jsonMode bool) {
 func printUsage() {
 	fmt.Fprintln(os.Stderr, "Usage: grif <command> [--json] [args]")
 	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Manage infrastructure graphs stored in Git.")
+	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Commands:")
 	fmt.Fprintln(os.Stderr, "  init <name>       Create a new infrastructure graph")
 	fmt.Fprintln(os.Stderr, "  list              List all infrastructure graphs")
@@ -356,14 +471,190 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  put <path>        Create or replace a node")
 	fmt.Fprintln(os.Stderr, "  get <path>        Read a node")
 	fmt.Fprintln(os.Stderr, "  rm <path>         Delete a node")
-	fmt.Fprintln(os.Stderr, "  commit <graph>    Commit staged changes")
-	fmt.Fprintln(os.Stderr, "  status <graph>    Show uncommitted changes")
+	fmt.Fprintln(os.Stderr, "  commit [graph]    Commit staged changes")
+	fmt.Fprintln(os.Stderr, "  status [graph]    Show uncommitted changes")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Flags:")
 	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
-	fmt.Fprintln(os.Stderr, "  --data <content>  Blob content as string (put)")
-	fmt.Fprintln(os.Stderr, "  --file <file>     Read blob content from file (put)")
-	fmt.Fprintln(os.Stderr, "  --message <msg>   Commit message (commit)")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show help for a command")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Run 'grif <command> --help' for more information on a command.")
+}
+
+func printInitUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif init <name> [--json]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Create a new infrastructure graph in the current Git repository.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Creates an empty graph with an orphan commit and a ref at")
+	fmt.Fprintln(os.Stderr, "refs/infra/<name>. The current HEAD is recorded as the source commit.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Arguments:")
+	fmt.Fprintln(os.Stderr, "  <name>            Name for the new graph")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif init default")
+	fmt.Fprintln(os.Stderr, "  grif init production --json")
+}
+
+func printListUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif list [--json]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "List all infrastructure graphs in the current Git repository.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Graphs are listed alphabetically by name.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif list")
+	fmt.Fprintln(os.Stderr, "  grif list --json")
+}
+
+func printDeleteUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif delete <name> [--json]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Delete an infrastructure graph from the current Git repository.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Removes the graph ref at refs/infra/<name> and any associated")
+	fmt.Fprintln(os.Stderr, "staging ref. This operation cannot be undone.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Arguments:")
+	fmt.Fprintln(os.Stderr, "  <name>            Name of the graph to delete")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif delete default")
+	fmt.Fprintln(os.Stderr, "  grif delete staging --json")
+}
+
+func printGetUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif get <graph/path> [--json]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Read a node from an infrastructure graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "For blob nodes, prints the blob content. For tree nodes, lists")
+	fmt.Fprintln(os.Stderr, "the children in a table with type, name, and ID.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Arguments:")
+	fmt.Fprintln(os.Stderr, "  <graph/path>      Path to the node (e.g. default/network/vpc)")
+	fmt.Fprintln(os.Stderr, "                    The first segment is the graph name; remaining")
+	fmt.Fprintln(os.Stderr, "                    segments address nodes within the graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif get default/network")
+	fmt.Fprintln(os.Stderr, "  grif get default/network/vpc")
+	fmt.Fprintln(os.Stderr, "  grif get default/network/vpc --json")
+}
+
+func printRmUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif rm <graph/path> [--json]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Delete a node from an infrastructure graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Removes the node at the specified path. If the node is a tree,")
+	fmt.Fprintln(os.Stderr, "all descendants are removed recursively.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Arguments:")
+	fmt.Fprintln(os.Stderr, "  <graph/path>      Path to the node (e.g. default/network/vpc)")
+	fmt.Fprintln(os.Stderr, "                    The first segment is the graph name; remaining")
+	fmt.Fprintln(os.Stderr, "                    segments address nodes within the graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif rm default/network/vpc")
+	fmt.Fprintln(os.Stderr, "  grif rm default/network              # removes tree and all children")
+}
+
+func printCommitUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif commit [graph] [--message <msg>] [--json]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Commit staged changes for an infrastructure graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Creates a new commit on the graph's ref with all changes")
+	fmt.Fprintln(os.Stderr, "that have been staged via put and rm commands.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "If only one graph exists, the graph name is optional.")
+	fmt.Fprintln(os.Stderr, "When multiple graphs exist, the graph name is required.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Arguments:")
+	fmt.Fprintln(os.Stderr, "  [graph]           Name of the graph (optional if only one exists)")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --message <msg>   Commit message")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif commit --message \"Add network resources\"")
+	fmt.Fprintln(os.Stderr, "  grif commit default --message \"Add network resources\"")
+	fmt.Fprintln(os.Stderr, "  grif commit default --json")
+}
+
+func printStatusUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif status [graph] [--json]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Show uncommitted changes for an infrastructure graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "If only one graph exists, the graph name is optional.")
+	fmt.Fprintln(os.Stderr, "When multiple graphs exist, the graph name is required.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Arguments:")
+	fmt.Fprintln(os.Stderr, "  [graph]           Name of the graph (optional if only one exists)")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif status")
+	fmt.Fprintln(os.Stderr, "  grif status default")
+	fmt.Fprintln(os.Stderr, "  grif status default --json")
+}
+
+func printPutUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif put <graph/path> [options]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Create or replace a node in an infrastructure graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Arguments:")
+	fmt.Fprintln(os.Stderr, "  <graph/path>      Path to the node (e.g. default/network/vpc)")
+	fmt.Fprintln(os.Stderr, "                    The first segment is the graph name; remaining")
+	fmt.Fprintln(os.Stderr, "                    segments address nodes within the graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Content sources (mutually exclusive):")
+	fmt.Fprintln(os.Stderr, "  --data <content>  Provide blob content as an inline string")
+	fmt.Fprintln(os.Stderr, "  --file <file>     Read blob content from a file")
+	fmt.Fprintln(os.Stderr, "  <stdin>           Pipe content via stdin")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "  If no content source is provided, a tree node is created.")
+	fmt.Fprintln(os.Stderr, "  Missing intermediate tree nodes are created automatically.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif put default/network/vpc --data \"10.0.0.0/16\"")
+	fmt.Fprintln(os.Stderr, "  grif put default/config --file config.json")
+	fmt.Fprintln(os.Stderr, "  echo '{\"size\": 10}' | grif put default/storage/disk")
+	fmt.Fprintln(os.Stderr, "  grif put default/network              # creates a tree node")
 }
 
 func printError(jsonMode bool, msg string) {
@@ -394,7 +685,7 @@ func positionalArgs() []string {
 			skip = false
 			continue
 		}
-		if arg == "--json" {
+		if arg == "--json" || arg == "-h" || arg == "--help" {
 			continue
 		}
 		if arg == "--data" || arg == "--file" || arg == "--message" {

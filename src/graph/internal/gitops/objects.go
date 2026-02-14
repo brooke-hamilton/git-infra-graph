@@ -1,6 +1,7 @@
 package gitops
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
@@ -116,7 +116,7 @@ func ListRefsByPrefix(repo *git.Repository, prefix string) ([]string, error) {
 		}
 		return nil
 	})
-	if err != nil && err != storer.ErrStop {
+	if err != nil && !errors.Is(err, storer.ErrStop) {
 		return nil, fmt.Errorf("failed to list refs: %w", err)
 	}
 	return names, nil
@@ -320,9 +320,4 @@ func CreateCommit(repo *git.Repository, treeHash plumbing.Hash, parentHashes []p
 func UpdateRef(repo *git.Repository, refName string, hash plumbing.Hash) error {
 	ref := plumbing.NewHashReference(plumbing.ReferenceName(refName), hash)
 	return repo.Storer.SetReference(ref)
-}
-
-// IsTreeEntry returns true if the filemode indicates a tree (directory).
-func IsTreeEntry(mode filemode.FileMode) bool {
-	return mode == filemode.Dir
 }

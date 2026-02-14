@@ -5,6 +5,7 @@ help: ## Show this help
 
 build: ## Build the grif CLI binary
 	go build -o grif ./src/cmd/grif
+	cp grif testdata/example/
 
 lint: ## Run golangci-lint
 	golangci-lint run ./...
