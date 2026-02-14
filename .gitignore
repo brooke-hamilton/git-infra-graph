@@ -1,6 +1,11 @@
 # Binary
 /grif
 
+# Go build artifacts
+*.exe
+*.test
+*.out
+
 # Test scratch directories
 testdata/
 
@@ -11,3 +16,5 @@ Thumbs.db
 # Editor files
 *.swp
 *.tmp
+.vscode/
+.idea/
