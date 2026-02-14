@@ -123,8 +123,8 @@ func ListRefsByPrefix(repo *git.Repository, prefix string) ([]string, error) {
 // operations.
 func DefaultSignature() object.Signature {
 	return object.Signature{
-		Name:  "rad-graph",
-		Email: "rad-graph@localhost",
+		Name:  "git-infra-graph",
+		Email: "git-infra-graph@localhost",
 		When:  time.Now(),
 	}
 }

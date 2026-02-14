@@ -1,15 +1,15 @@
-# rad-graph
+# Git Infrastructure Graph (grif)
 
 Infrastructure graph management backed by Git-native storage.
 
-`rad-graph` stores infrastructure graphs as Git objects (trees, commits, refs)
+`git-infra-graph` stores infrastructure graphs as Git objects (trees, commits, refs)
 under a custom `refs/infra/` namespace. No external database required — all
 data lives in your Git repository.
 
 ## Installation
 
 ```bash
-go install github.com/brooke-hamilton/rad-graph/src/cmd/grif@latest
+go install github.com/brooke-hamilton/git-infra-graph/src/cmd/grif@latest
 ```
 
 Or build from source:
@@ -111,7 +111,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/brooke-hamilton/rad-graph/src/graph"
+    "github.com/brooke-hamilton/git-infra-graph/src/graph"
 )
 
 func main() {
