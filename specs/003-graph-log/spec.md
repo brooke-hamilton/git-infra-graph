@@ -27,21 +27,21 @@ A user has an infrastructure graph with multiple commits and wants to see the co
 
 ```text
 $ grif log default
-commit a1b2c3d4e5f6a7b8
+commit a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0
 Date:   2026-02-14 10:30:00 -0700
-Source: f9e8d7c6a5b4c3d2
+Source: f9e8d7c6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0
 
     Add network resources
 
-commit c3d4e5f6a7b8c9d0
+commit c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2
 Date:   2026-02-14 10:15:00 -0700
-Source: d2c1b0a9e8f7d6c5
+Source: d2c1b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3
 
     Update graph "default"
 
-commit e5f6a7b8c9d0e1f2
+commit e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4
 Date:   2026-02-14 10:00:00 -0700
-Source: b0a9e8f7d6c5b4a3
+Source: b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3a2b1
 
     Initialize graph "default"
 ```
@@ -50,9 +50,9 @@ Source: b0a9e8f7d6c5b4a3
 
 ```text
 $ grif log default
-commit e5f6a7b8c9d0e1f2
+commit e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4
 Date:   2026-02-14 10:00:00 -0700
-Source: b0a9e8f7d6c5b4a3
+Source: b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3a2b1
 
     Initialize graph "default"
 ```
@@ -108,15 +108,15 @@ A user has a graph with a long history and only wants to see the most recent N c
 
 ```text
 $ grif log --max-count 2 default
-commit a1b2c3d4e5f6a7b8
+commit a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0
 Date:   2026-02-14 10:30:00 -0700
-Source: f9e8d7c6a5b4c3d2
+Source: f9e8d7c6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0
 
     Add network resources
 
-commit c3d4e5f6a7b8c9d0
+commit c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2
 Date:   2026-02-14 10:15:00 -0700
-Source: d2c1b0a9e8f7d6c5
+Source: d2c1b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3
 
     Update graph "default"
 ```
@@ -150,18 +150,18 @@ A user or automation script needs machine-readable output of the commit history.
 $ grif log --json default
 [
   {
-    "hash": "a1b2c3d4e5f6a7b8",
+    "hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
     "date": "2026-02-14T10:30:00-07:00",
-    "sourceCommit": "f9e8d7c6a5b4c3d2",
+    "sourceCommit": "f9e8d7c6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0",
     "author": "git-infra-graph",
-    "message": "Add network resources\n\nSource-Commit: f9e8d7c6a5b4c3d2\n"
+    "message": "Add network resources\n\nSource-Commit: f9e8d7c6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0\n"
   },
   {
-    "hash": "e5f6a7b8c9d0e1f2",
+    "hash": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
     "date": "2026-02-14T10:00:00-07:00",
-    "sourceCommit": "b0a9e8f7d6c5b4a3",
+    "sourceCommit": "b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3a2b1",
     "author": "git-infra-graph",
-    "message": "Initialize graph \"default\"\n\nSource-Commit: b0a9e8f7d6c5b4a3\n"
+    "message": "Initialize graph \"default\"\n\nSource-Commit: b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3a2b1\n"
   }
 ]
 ```
@@ -172,11 +172,11 @@ $ grif log --json default
 $ grif log --json --max-count 1 default
 [
   {
-    "hash": "a1b2c3d4e5f6a7b8",
+    "hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
     "date": "2026-02-14T10:30:00-07:00",
-    "sourceCommit": "f9e8d7c6a5b4c3d2",
+    "sourceCommit": "f9e8d7c6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0",
     "author": "git-infra-graph",
-    "message": "Add network resources\n\nSource-Commit: f9e8d7c6a5b4c3d2\n"
+    "message": "Add network resources\n\nSource-Commit: f9e8d7c6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0\n"
   }
 ]
 ```
@@ -201,15 +201,15 @@ A user has only one graph in their repository and wants to view its log without 
 
 ```text
 $ grif log
-commit a1b2c3d4e5f6a7b8
+commit a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0
 Date:   2026-02-14 10:30:00 -0700
-Source: f9e8d7c6a5b4c3d2
+Source: f9e8d7c6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0
 
     Add network resources
 
-commit e5f6a7b8c9d0e1f2
+commit e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4
 Date:   2026-02-14 10:00:00 -0700
-Source: b0a9e8f7d6c5b4a3
+Source: b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3a2b1
 
     Initialize graph "default"
 ```
@@ -246,7 +246,7 @@ Error: no graphs found
 - **FR-002**: When no graph name is provided and exactly one graph exists, the command MUST default to that graph. When no graph name is provided and multiple graphs exist, the command MUST fail with a descriptive error listing available graphs. When no graphs exist, the command MUST fail with a descriptive error.
 - **FR-003**: The `log` command MUST walk the commit chain starting from the graph ref's tip commit, following the `ParentHashes` of each commit object.
 - **FR-004**: The `log` command MUST display commits in reverse chronological order (newest first), following the commit chain from tip to root.
-- **FR-005**: For each commit in the default (human-readable) output, the command MUST display: the full 40-character commit hash, the date (formatted as `YYYY-MM-DD HH:MM:SS ±HHMM`), the `Source-Commit` trailer value, and the commit message (indented with 4 spaces).
+- **FR-005**: For each commit in the default (human-readable) output, the command MUST display: the full 40-character commit hash, the date (formatted as `YYYY-MM-DD HH:MM:SS ±HHMM`), the `Source-Commit` trailer value, and the commit message (indented with 4 spaces). The author field is omitted from default human-readable output; it is included only in JSON output (FR-008). Only the first paragraph of the commit message (up to the first blank line, excluding the `Source-Commit:` trailer line) is displayed.
 - **FR-006**: The `log` command MUST support a `--oneline` flag that displays each commit on a single line in the format `<8-char-hash> <first line of commit message>`.
 - **FR-007**: The `log` command MUST support a `--max-count N` flag that limits output to at most N commits. A value of 0 displays no commits. Negative values MUST produce an error.
 - **FR-008**: The `log` command MUST support a `--json` flag that outputs a JSON array of commit objects, each containing: `hash` (full commit hash), `date` (ISO 8601 format), `sourceCommit` (Source-Commit trailer value), `author` (author name), and `message` (full commit message).
