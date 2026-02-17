@@ -794,3 +794,82 @@ func joinPath(prefix, name string) string {
 	}
 	return prefix + "/" + name
 }
+
+// Log returns the commit history for the specified graph by walking the
+// commit chain from the graph ref's tip commit back to the orphan root.
+//
+// Commits are returned in reverse chronological order (newest first),
+// following the parent hashes of each commit object.
+//
+// Options:
+//   - MaxCount: When HasMaxCount is true, limits the result to at most
+//     MaxCount entries. A MaxCount of 0 with HasMaxCount true returns no
+//     entries. Negative MaxCount values return an error.
+//
+// Broken chain handling: If a parent commit object cannot be found during
+// the walk, all reachable commits collected so far are returned in
+// LogResult.Entries, and LogResult.Warning is set to a descriptive message.
+func Log(repoPath string, graphName string, opts LogOptions) (*LogResult, error) {
+	if err := ValidateGraphName(graphName); err != nil {
+		return nil, err
+	}
+
+	if opts.HasMaxCount && opts.MaxCount < 0 {
+		return nil, errors.New("max-count must be a non-negative integer")
+	}
+
+	if opts.HasMaxCount && opts.MaxCount == 0 {
+		return &LogResult{Entries: []LogEntry{}}, nil
+	}
+
+	repo, err := gitops.OpenRepo(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	refName := graphRefName(graphName)
+	ref, err := repo.Storer.Reference(plumbing.ReferenceName(refName))
+	if err != nil {
+		return nil, fmt.Errorf("graph '%s' not found", graphName)
+	}
+
+	// Read the tip commit to verify it exists
+	tipCommit, err := repo.CommitObject(ref.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("failed to read tip commit for graph '%s': %w", graphName, err)
+	}
+
+	var entries []LogEntry
+	currentCommit := tipCommit
+
+	for {
+		entry := LogEntry{
+			Hash:         currentCommit.Hash.String(),
+			Date:         currentCommit.Committer.When,
+			SourceCommit: extractSourceCommit(currentCommit.Message),
+			Author:       currentCommit.Author.Name,
+			Message:      currentCommit.Message,
+		}
+		entries = append(entries, entry)
+
+		if opts.HasMaxCount && len(entries) >= opts.MaxCount {
+			break
+		}
+
+		if len(currentCommit.ParentHashes) == 0 {
+			break // orphan root reached
+		}
+
+		parentCommit, err := repo.CommitObject(currentCommit.ParentHashes[0])
+		if err != nil {
+			// Broken chain — return partial result with warning
+			return &LogResult{
+				Entries: entries,
+				Warning: fmt.Sprintf("broken commit chain at %s: %v", currentCommit.ParentHashes[0].String(), err),
+			}, nil
+		}
+		currentCommit = parentCommit
+	}
+
+	return &LogResult{Entries: entries}, nil
+}

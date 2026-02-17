@@ -17,8 +17,8 @@
 
 **Purpose**: Define the new types and function signature required by all user stories
 
-- [ ] T001 [P] Add `LogEntry`, `LogOptions`, and `LogResult` types to src/graph/node.go per contracts/go-api.md
-- [ ] T002 [P] Add `log` command case to the CLI switch in src/cmd/grif/main.go (call placeholder `runLog` that prints "not implemented")
+- [X] T001 [P] Add `LogEntry`, `LogOptions`, and `LogResult` types to src/graph/node.go per contracts/go-api.md
+- [X] T002 [P] Add `log` command case to the CLI switch in src/cmd/grif/main.go (call placeholder `runLog` that prints "not implemented")
 
 ---
 
@@ -28,8 +28,8 @@
 
 **CRITICAL**: No user story output formatting can work until the commit-chain walk is complete
 
-- [ ] T003 Write integration tests for `graph.Log` in src/graph/graph_test.go — table-driven tests covering: single commit (init only), multiple commits in reverse chronological order, graph not found error, negative max-count error, max-count limits results, max-count 0 returns empty, max-count exceeding commit count returns all, missing Source-Commit trailer produces empty string, broken commit chain returns partial result with warning. Tests use live Git repos in testdata/ with unique subdirs and `t.Cleanup`. Tests run in parallel.
-- [ ] T004 Implement `Log(repoPath, graphName, opts)` function in src/graph/graph.go — validate inputs (graph name, negative max-count), resolve graph ref, walk commit chain via `repo.CommitObject`, extract `LogEntry` fields (Hash, Date, SourceCommit, Author, Message), respect `MaxCount`/`HasMaxCount`, handle broken chains with `LogResult.Warning`, return `*LogResult`
+- [X] T003 Write integration tests for `graph.Log` in src/graph/graph_test.go — table-driven tests covering: single commit (init only), multiple commits in reverse chronological order, graph not found error, negative max-count error, max-count limits results, max-count 0 returns empty, max-count exceeding commit count returns all, missing Source-Commit trailer produces empty string, broken commit chain returns partial result with warning. Tests use live Git repos in testdata/ with unique subdirs and `t.Cleanup`. Tests run in parallel.
+- [X] T004 Implement `Log(repoPath, graphName, opts)` function in src/graph/graph.go — validate inputs (graph name, negative max-count), resolve graph ref, walk commit chain via `repo.CommitObject`, extract `LogEntry` fields (Hash, Date, SourceCommit, Author, Message), respect `MaxCount`/`HasMaxCount`, handle broken chains with `LogResult.Warning`, return `*LogResult`
 
 **Checkpoint**: `graph.Log()` returns correct `*LogResult` for any graph — all integration tests pass. All user story CLI work can now begin.
 
@@ -41,13 +41,13 @@
 
 ### Tests for User Story 1
 
-- [ ] T005 [US1] Write integration tests for default human-readable log output in src/graph/graph_test.go — verify output format matches contract (40-char hash, Date line, Source line, indented first-paragraph message), multiple commits display newest-first, single init commit case, graph not found error message on stderr, exit code 1 on error
+- [X] T005 [US1] Write integration tests for default human-readable log output in src/graph/graph_test.go — verify output format matches contract (40-char hash, Date line, Source line, indented first-paragraph message), multiple commits display newest-first, single init commit case, graph not found error message on stderr, exit code 1 on error
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement `runLog` function in src/cmd/grif/main.go — parse positional graph name argument, call `graph.Log`, format default human-readable output per contract (commit hash, Date line, Source line, indented message), write warnings to stderr, handle errors with `printError` and exit code 1
-- [ ] T007 [US1] Add `printLogUsage` help text function in src/cmd/grif/main.go
-- [ ] T008 [US1] Update `printUsage` in src/cmd/grif/main.go to include the `log` command in the commands list
+- [X] T006 [US1] Implement `runLog` function in src/cmd/grif/main.go — parse positional graph name argument, call `graph.Log`, format default human-readable output per contract (commit hash, Date line, Source line, indented message), write warnings to stderr, handle errors with `printError` and exit code 1
+- [X] T007 [US1] Add `printLogUsage` help text function in src/cmd/grif/main.go
+- [X] T008 [US1] Update `printUsage` in src/cmd/grif/main.go to include the `log` command in the commands list
 
 **Checkpoint**: `grif log <graph>` displays full commit history in human-readable format
 
@@ -59,12 +59,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T009 [US2] Write tests for `--oneline` output format — verify each line is `<8-char-hash> <first line of commit message>`, multi-line commit messages show only first line
+- [X] T009 [US2] Write tests for `--oneline` output format — verify each line is `<8-char-hash> <first line of commit message>`, multi-line commit messages show only first line
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Add `--oneline` flag support to `runLog` in src/cmd/grif/main.go — when `--oneline` is set and `--json` is not, format each entry as `<hash[:8]> <first line of message>`
-- [ ] T010a [US2] Update `positionalArgs` in src/cmd/grif/main.go to skip `--oneline` as a no-value flag so it is not treated as a positional argument
+- [X] T010 [US2] Add `--oneline` flag support to `runLog` in src/cmd/grif/main.go — when `--oneline` is set and `--json` is not, format each entry as `<hash[:8]> <first line of message>`
+- [X] T010a [US2] Update `positionalArgs` in src/cmd/grif/main.go to skip `--oneline` as a no-value flag so it is not treated as a positional argument
 
 **Checkpoint**: `grif log --oneline <graph>` displays compact one-line output
 
@@ -76,12 +76,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T011 [US3] Write tests for `--max-count` flag — verify exact count of entries displayed, max-count 0 shows nothing, max-count exceeding commit count shows all, negative value produces error, max-count combined with `--oneline`
+- [X] T011 [US3] Write tests for `--max-count` flag — verify exact count of entries displayed, max-count 0 shows nothing, max-count exceeding commit count shows all, negative value produces error, max-count combined with `--oneline`
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] Add `--max-count` flag parsing to `runLog` in src/cmd/grif/main.go — parse integer value, set `LogOptions.MaxCount` and `LogOptions.HasMaxCount`, pass to `graph.Log`; validate parse errors in CLI before calling module
-- [ ] T013 [US3] Update `positionalArgs` in src/cmd/grif/main.go to skip `--max-count` and its value argument
+- [X] T012 [US3] Add `--max-count` flag parsing to `runLog` in src/cmd/grif/main.go — parse integer value, set `LogOptions.MaxCount` and `LogOptions.HasMaxCount`, pass to `graph.Log`; validate parse errors in CLI before calling module
+- [X] T013 [US3] Update `positionalArgs` in src/cmd/grif/main.go to skip `--max-count` and its value argument
 
 **Checkpoint**: `grif log --max-count N` works with default and `--oneline` output modes
 
@@ -93,11 +93,11 @@
 
 ### Tests for User Story 4
 
-- [ ] T014 [US4] Write tests for `--json` output mode — verify output is valid JSON array, each object contains all expected fields (`hash`, `date`, `sourceCommit`, `author`, `message`), `--json` takes precedence over `--oneline` (FR-009), `--json --max-count N` limits the array, date uses ISO 8601 format
+- [X] T014 [US4] Write tests for `--json` output mode — verify output is valid JSON array, each object contains all expected fields (`hash`, `date`, `sourceCommit`, `author`, `message`), `--json` takes precedence over `--oneline` (FR-009), `--json --max-count N` limits the array, date uses ISO 8601 format
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] Add `--json` output mode to `runLog` in src/cmd/grif/main.go — when `--json` is set, JSON-marshal `result.Entries` as an array to stdout; `--json` takes precedence over `--oneline` (FR-009); JSON errors use `printError` format on stderr
+- [X] T015 [US4] Add `--json` output mode to `runLog` in src/cmd/grif/main.go — when `--json` is set, JSON-marshal `result.Entries` as an array to stdout; `--json` takes precedence over `--oneline` (FR-009); JSON errors use `printError` format on stderr
 
 **Checkpoint**: `grif log --json` produces valid JSON; `--json --max-count N` limits the array; `--json --oneline` outputs full JSON
 
@@ -109,11 +109,11 @@
 
 ### Tests for User Story 5
 
-- [ ] T016 [US5] Write tests for default graph resolution — single graph auto-selected, multiple graphs produces error listing available graphs, no graphs produces error
+- [X] T016 [US5] Write tests for default graph resolution — single graph auto-selected, multiple graphs produces error listing available graphs, no graphs produces error
 
 ### Implementation for User Story 5
 
-- [ ] T017 [US5] Add default graph resolution to `runLog` in src/cmd/grif/main.go — when no positional argument provided, call `graph.List`, auto-select if exactly one, error if zero or multiple (matching existing `runCommit`/`runStatus` pattern — error message does not list graph names, per research.md design decision)
+- [X] T017 [US5] Add default graph resolution to `runLog` in src/cmd/grif/main.go — when no positional argument provided, call `graph.List`, auto-select if exactly one, error if zero or multiple (matching existing `runCommit`/`runStatus` pattern — error message does not list graph names, per research.md design decision)
 
 **Checkpoint**: `grif log` auto-selects sole graph; errors correctly for zero/multiple graphs
 
@@ -123,10 +123,10 @@
 
 **Purpose**: Documentation, validation, and performance verification
 
-- [ ] T018 [P] Update README.md to document the `log` command, its flags (`--oneline`, `--max-count`, `--json`), and usage examples
-- [ ] T019 [P] Update docs/git-infra-graph.md with `log` command documentation if applicable
-- [ ] T020 Run quickstart.md scenarios manually to validate end-to-end behavior
-- [ ] T021 Validate SC-001 performance: create a graph with 1,000 commits, run `grif log`, verify completion under 2 seconds (manual benchmark or scripted timing test)
+- [X] T018 [P] Update README.md to document the `log` command, its flags (`--oneline`, `--max-count`, `--json`), and usage examples
+- [X] T019 [P] Update docs/git-infra-graph.md with `log` command documentation if applicable (no changes needed — this file documents the data model, not CLI commands)
+- [X] T020 Run quickstart.md scenarios manually to validate end-to-end behavior
+- [X] T021 Validate SC-001 performance: create a graph with 1,000 commits, run `grif log`, verify completion under 2 seconds (manual benchmark or scripted timing test)
 
 ---
 

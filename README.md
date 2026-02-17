@@ -221,6 +221,49 @@ grif status default --json
 # Output: {"graph":"default","changes":[{"path":"network/vpc","status":"added"}]}
 ```
 
+### View commit history
+
+```bash
+grif log [graph] [--oneline] [--max-count N] [--json]
+```
+
+Displays the commit history for a graph in reverse chronological order.
+
+If only one graph exists, the graph name is optional.
+
+```bash
+# Full log
+grif log default
+# Output:
+# commit a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0
+# Date:   2026-02-14 10:30:00 -0700
+# Source: f9e8d7c6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0
+#
+#     Add network resources
+#
+# commit e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4
+# Date:   2026-02-14 10:00:00 -0700
+# Source: b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3a2b1
+#
+#     Initialize graph "default"
+
+# Compact one-line format
+grif log --oneline default
+# Output:
+# a1b2c3d4 Add network resources
+# e5f6a7b8 Initialize graph "default"
+
+# Limit to N most recent commits
+grif log --max-count 1 default
+
+# JSON output
+grif log --json default
+# Output: [{"hash":"a1b2...","date":"2026-02-14T10:30:00-07:00","sourceCommit":"f9e8...","author":"git-infra-graph","message":"..."}]
+
+# Combine flags
+grif log --oneline --max-count 5 default
+```
+
 ## Error Handling
 
 All errors print to stderr and exit with code 1.
