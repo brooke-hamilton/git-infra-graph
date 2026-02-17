@@ -64,6 +64,7 @@
 ### Implementation for User Story 2
 
 - [ ] T010 [US2] Add `--oneline` flag support to `runLog` in src/cmd/grif/main.go — when `--oneline` is set and `--json` is not, format each entry as `<hash[:8]> <first line of message>`
+- [ ] T010a [US2] Update `positionalArgs` in src/cmd/grif/main.go to skip `--oneline` as a no-value flag so it is not treated as a positional argument
 
 **Checkpoint**: `grif log --oneline <graph>` displays compact one-line output
 
@@ -80,7 +81,7 @@
 ### Implementation for User Story 3
 
 - [ ] T012 [US3] Add `--max-count` flag parsing to `runLog` in src/cmd/grif/main.go — parse integer value, set `LogOptions.MaxCount` and `LogOptions.HasMaxCount`, pass to `graph.Log`; validate parse errors in CLI before calling module
-- [ ] T013 [US3] Update `positionalArgs` in src/cmd/grif/main.go to skip `--max-count` and its value argument, and `--oneline` as a no-value flag
+- [ ] T013 [US3] Update `positionalArgs` in src/cmd/grif/main.go to skip `--max-count` and its value argument
 
 **Checkpoint**: `grif log --max-count N` works with default and `--oneline` output modes
 
@@ -112,7 +113,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T017 [US5] Add default graph resolution to `runLog` in src/cmd/grif/main.go — when no positional argument provided, call `graph.List`, auto-select if exactly one, error if zero or multiple (matching existing `runCommit`/`runStatus` pattern)
+- [ ] T017 [US5] Add default graph resolution to `runLog` in src/cmd/grif/main.go — when no positional argument provided, call `graph.List`, auto-select if exactly one, error if zero or multiple (matching existing `runCommit`/`runStatus` pattern — error message does not list graph names, per research.md design decision)
 
 **Checkpoint**: `grif log` auto-selects sole graph; errors correctly for zero/multiple graphs
 
@@ -138,6 +139,7 @@
 - **User Stories (Phases 3–7)**: All depend on Phase 2 (`graph.Log` must be implemented)
   - US1 (Phase 3) should be completed first as it establishes `runLog` scaffolding
   - US2 (Phase 4), US3 (Phase 5), US4 (Phase 6), US5 (Phase 7) all extend `runLog` — implement sequentially after US1
+  - T010a (Phase 4) updates `positionalArgs` for `--oneline`; T013 (Phase 5) updates it for `--max-count`
 - **Polish (Phase 8)**: Depends on all user stories being complete
 
 ### User Story Dependencies

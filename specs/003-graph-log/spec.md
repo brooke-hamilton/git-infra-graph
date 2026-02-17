@@ -194,7 +194,7 @@ A user has only one graph in their repository and wants to view its log without 
 **Acceptance Scenarios**:
 
 1. **Given** a repository with exactly one graph named "default", **When** the user runs `grif log` (no graph argument), **Then** the log for "default" is displayed.
-2. **Given** a repository with graphs "staging" and "production", **When** the user runs `grif log` (no graph argument), **Then** the command fails with an error listing the available graph names and prompting the user to specify one.
+2. **Given** a repository with graphs "staging" and "production", **When** the user runs `grif log` (no graph argument), **Then** the command fails with a descriptive error prompting the user to specify a graph name.
 3. **Given** a repository with no graphs, **When** the user runs `grif log`, **Then** the command fails with a descriptive error indicating no graphs exist.
 
 **Example — single graph auto-selected**:
@@ -218,7 +218,7 @@ Source: b0a9e8f7d6c5b4a3c2d1e0f9a8b7c6d5e4f3a2b1
 
 ```text
 $ grif log
-Error: multiple graphs exist, specify one: production, staging
+Error: multiple graphs exist; specify a graph name
 ```
 
 **Example — no graphs exist (stderr)**:
@@ -243,7 +243,7 @@ Error: no graphs found
 ### Functional Requirements
 
 - **FR-001**: The `log` command MUST accept an optional graph name argument identifying the target graph (ref `refs/infra/<name>`).
-- **FR-002**: When no graph name is provided and exactly one graph exists, the command MUST default to that graph. When no graph name is provided and multiple graphs exist, the command MUST fail with a descriptive error listing available graphs. When no graphs exist, the command MUST fail with a descriptive error.
+- **FR-002**: When no graph name is provided and exactly one graph exists, the command MUST default to that graph. When no graph name is provided and multiple graphs exist, the command MUST fail with a descriptive error prompting the user to specify a graph name. When no graphs exist, the command MUST fail with a descriptive error.
 - **FR-003**: The `log` command MUST walk the commit chain starting from the graph ref's tip commit, following the `ParentHashes` of each commit object.
 - **FR-004**: The `log` command MUST display commits in reverse chronological order (newest first), following the commit chain from tip to root.
 - **FR-005**: For each commit in the default (human-readable) output, the command MUST display: the full 40-character commit hash, the date (formatted as `YYYY-MM-DD HH:MM:SS ±HHMM`), the `Source-Commit` trailer value, and the commit message (indented with 4 spaces). The author field is omitted from default human-readable output; it is included only in JSON output (FR-008). Only the first paragraph of the commit message (up to the first blank line, excluding the `Source-Commit:` trailer line) is displayed.

@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-13
 - Git object database only (blobs, trees, commits, refs); per-graph index file (`.git/infra-index-<name>`) for staging (002-graph-put-get-delete)
 - Go 1.26.0 (per `go.mod`) + `go-git` (`github.com/go-git/go-git/v5`) — pure-Go Git implementation for reading commit objects and refs (003-graph-log)
 - Git object database only (commits, refs); read-only access — no writes (003-graph-log)
+- Go 1.26.0 (per `go.mod`) + `go-git` (`github.com/go-git/go-git/v5`) — pure-Go Git implementation for commit object access and ref resolution (003-graph-log)
+- Git object database only (commits, refs); read-only access to existing objects created by `Init` and `Commit` (003-graph-log)
 
 - Go (version TBD in `go.mod`; target Go 1.22+) + `go-git` (`github.com/go-git/go-git/v5`) — pure-Go Git implementation; no runtime `git` binary required (see [research.md](research.md) R1) (001-graph-init-list)
 
@@ -26,10 +28,10 @@ tests/
 Go (version TBD in `go.mod`; target Go 1.22+): Follow standard conventions
 
 ## Recent Changes
+- 003-graph-log: Added Go 1.26.0 (per `go.mod`) + `go-git` (`github.com/go-git/go-git/v5`) — pure-Go Git implementation for commit object access and ref resolution
 - 003-graph-log: Added Go 1.26.0 (per `go.mod`) + `go-git` (`github.com/go-git/go-git/v5`) — pure-Go Git implementation for reading commit objects and refs
 - 002-graph-put-get-delete: Added Go 1.26.0 (per `go.mod`) + `go-git` (`github.com/go-git/go-git/v5`) — pure-Go Git implementation for all object store operations (blobs, trees, commits, refs)
 
-- 001-graph-init-list: Added Go (version TBD in `go.mod`; target Go 1.22+) + `go-git` (`github.com/go-git/go-git/v5`) — pure-Go Git implementation; no runtime `git` binary required (see [research.md](research.md) R1)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
