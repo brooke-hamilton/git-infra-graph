@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/brooke-hamilton/git-infra-graph/src/graph"
@@ -43,8 +41,6 @@ func main() {
 		runCommit(jsonMode)
 	case "status":
 		runStatus(jsonMode)
-	case "log":
-		runLog(jsonMode)
 	default:
 		printError(jsonMode, fmt.Sprintf("unknown command: %s", command))
 		os.Exit(1)
@@ -409,129 +405,6 @@ func runCommit(jsonMode bool) {
 	}
 }
 
-func runLog(jsonMode bool) {
-	if hasFlag("--help") || hasFlag("-h") {
-		printLogUsage()
-		return
-	}
-
-	args := positionalArgs()
-	if len(args) > 1 {
-		printError(jsonMode, fmt.Sprintf("log expects at most 1 argument, got %d", len(args)))
-		os.Exit(1)
-	}
-	repoPath := "."
-
-	var graphName string
-	if len(args) == 1 {
-		graphName = args[0]
-	} else {
-		graphs, err := graph.List(repoPath)
-		if err != nil {
-			printError(jsonMode, err.Error())
-			os.Exit(1)
-		}
-
-		switch len(graphs) {
-		case 0:
-			printError(jsonMode, "no graphs found")
-			os.Exit(1)
-		case 1:
-			graphName = graphs[0].Name
-		default:
-			printError(jsonMode, "multiple graphs exist; specify a graph name")
-			os.Exit(1)
-		}
-	}
-
-	opts := graph.LogOptions{}
-
-	if hasFlag("--max-count") {
-		val := flagValue("--max-count")
-		n, err := strconv.Atoi(val)
-		if err != nil {
-			printError(jsonMode, "max-count must be a non-negative integer")
-			os.Exit(1)
-		}
-		if n < 0 {
-			printError(jsonMode, "max-count must be a non-negative integer")
-			os.Exit(1)
-		}
-		opts.MaxCount = n
-		opts.HasMaxCount = true
-	}
-
-	result, err := graph.Log(repoPath, graphName, opts)
-	if err != nil {
-		printError(jsonMode, err.Error())
-		os.Exit(1)
-	}
-
-	if result.Warning != "" {
-		fmt.Fprintf(os.Stderr, "Warning: %s\n", result.Warning)
-	}
-
-	if jsonMode {
-		out, err := json.Marshal(result.Entries)
-		if err != nil {
-			printError(jsonMode, err.Error())
-			os.Exit(1)
-		}
-		fmt.Println(string(out))
-	} else if hasFlag("--oneline") {
-		for _, entry := range result.Entries {
-			firstLine := extractDisplayMessage(entry.Message)
-			if i := strings.Index(firstLine, "\n"); i >= 0 {
-				firstLine = firstLine[:i]
-			}
-			hash := entry.Hash
-			if len(hash) > 8 {
-				hash = hash[:8]
-			}
-			fmt.Printf("%s %s\n", hash, firstLine)
-		}
-	} else {
-		for i, entry := range result.Entries {
-			if i > 0 {
-				fmt.Println()
-			}
-			fmt.Printf("commit %s\n", entry.Hash)
-			fmt.Printf("Date:   %s\n", entry.Date.Format("2006-01-02 15:04:05 -0700"))
-			if entry.SourceCommit != "" {
-				fmt.Printf("Source: %s\n", entry.SourceCommit)
-			}
-
-			// Display the first paragraph of the message, excluding the Source-Commit trailer line
-			msg := extractDisplayMessage(entry.Message)
-			if msg != "" {
-				fmt.Println()
-				for _, line := range strings.Split(msg, "\n") {
-					fmt.Printf("    %s\n", line)
-				}
-			}
-			fmt.Println()
-		}
-	}
-}
-
-// extractDisplayMessage returns the first paragraph of a commit message,
-// excluding any Source-Commit trailer line. The result has no leading/trailing
-// blank lines.
-func extractDisplayMessage(message string) string {
-	// Take only the first paragraph (up to the first blank line)
-	paragraphs := strings.SplitN(message, "\n\n", 2)
-	firstParagraph := strings.TrimSpace(paragraphs[0])
-
-	// Remove Source-Commit trailer line if present
-	var lines []string
-	for _, line := range strings.Split(firstParagraph, "\n") {
-		if !strings.HasPrefix(line, "Source-Commit:") {
-			lines = append(lines, line)
-		}
-	}
-	return strings.Join(lines, "\n")
-}
-
 func runStatus(jsonMode bool) {
 	if hasFlag("--help") || hasFlag("-h") {
 		printStatusUsage()
@@ -600,7 +473,6 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  rm <path>         Delete a node")
 	fmt.Fprintln(os.Stderr, "  commit [graph]    Commit staged changes")
 	fmt.Fprintln(os.Stderr, "  status [graph]    Show uncommitted changes")
-	fmt.Fprintln(os.Stderr, "  log [graph]       Show commit history")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Flags:")
 	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
@@ -735,31 +607,6 @@ func printCommitUsage() {
 	fmt.Fprintln(os.Stderr, "  grif commit default --json")
 }
 
-func printLogUsage() {
-	fmt.Fprintln(os.Stderr, "Usage: grif log [graph] [--oneline] [--max-count N] [--json]")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Display the commit history for an infrastructure graph.")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "If only one graph exists, the graph name is optional.")
-	fmt.Fprintln(os.Stderr, "When multiple graphs exist, the graph name is required.")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Arguments:")
-	fmt.Fprintln(os.Stderr, "  [graph]           Name of the graph (optional if only one exists)")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Flags:")
-	fmt.Fprintln(os.Stderr, "  --oneline         Compact one-line format per commit")
-	fmt.Fprintln(os.Stderr, "  --max-count N     Limit output to at most N commits")
-	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
-	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Examples:")
-	fmt.Fprintln(os.Stderr, "  grif log")
-	fmt.Fprintln(os.Stderr, "  grif log default")
-	fmt.Fprintln(os.Stderr, "  grif log --oneline default")
-	fmt.Fprintln(os.Stderr, "  grif log --max-count 5 default")
-	fmt.Fprintln(os.Stderr, "  grif log --json default")
-}
-
 func printStatusUsage() {
 	fmt.Fprintln(os.Stderr, "Usage: grif status [graph] [--json]")
 	fmt.Fprintln(os.Stderr, "")
@@ -838,10 +685,10 @@ func positionalArgs() []string {
 			skip = false
 			continue
 		}
-		if arg == "--json" || arg == "-h" || arg == "--help" || arg == "--oneline" {
+		if arg == "--json" || arg == "-h" || arg == "--help" {
 			continue
 		}
-		if arg == "--data" || arg == "--file" || arg == "--message" || arg == "--max-count" {
+		if arg == "--data" || arg == "--file" || arg == "--message" {
 			skip = true
 			continue
 		}
