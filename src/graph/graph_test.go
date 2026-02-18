@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func TestInit(t *testing.T) {
@@ -1356,6 +1357,338 @@ func TestStatus(t *testing.T) {
 		}
 		if len(result.Changes) != 0 {
 			t.Errorf("expected 0 changes, got %d", len(result.Changes))
+		}
+	})
+}
+
+func TestLog(t *testing.T) {
+	t.Parallel()
+
+	t.Run("single commit (init only)", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		result, err := Log(dir, "default", LogOptions{})
+		if err != nil {
+			t.Fatalf("Log returned error: %v", err)
+		}
+
+		if len(result.Entries) != 1 {
+			t.Fatalf("expected 1 entry, got %d", len(result.Entries))
+		}
+		if result.Warning != "" {
+			t.Errorf("expected no warning, got %q", result.Warning)
+		}
+
+		entry := result.Entries[0]
+		if len(entry.Hash) != 40 {
+			t.Errorf("expected 40-char hash, got %d chars: %q", len(entry.Hash), entry.Hash)
+		}
+		if entry.Date.IsZero() {
+			t.Error("entry.Date is zero")
+		}
+		if entry.Author == "" {
+			t.Error("entry.Author is empty")
+		}
+		if !strings.Contains(entry.Message, "Initialize graph") {
+			t.Errorf("expected init message, got %q", entry.Message)
+		}
+		if entry.SourceCommit == "" {
+			t.Error("entry.SourceCommit is empty for init commit")
+		}
+	})
+
+	t.Run("multiple commits in reverse chronological order", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		// First commit
+		if _, err := Put(dir, "default/a", []byte("first")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Commit(dir, "default", "first commit"); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+
+		// Second commit
+		if _, err := Put(dir, "default/b", []byte("second")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Commit(dir, "default", "second commit"); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+
+		result, err := Log(dir, "default", LogOptions{})
+		if err != nil {
+			t.Fatalf("Log returned error: %v", err)
+		}
+
+		if len(result.Entries) != 3 {
+			t.Fatalf("expected 3 entries (2 commits + init), got %d", len(result.Entries))
+		}
+
+		// Newest first
+		if !strings.Contains(result.Entries[0].Message, "second commit") {
+			t.Errorf("entries[0] should be newest, got %q", result.Entries[0].Message)
+		}
+		if !strings.Contains(result.Entries[1].Message, "first commit") {
+			t.Errorf("entries[1] should be middle, got %q", result.Entries[1].Message)
+		}
+		if !strings.Contains(result.Entries[2].Message, "Initialize graph") {
+			t.Errorf("entries[2] should be init, got %q", result.Entries[2].Message)
+		}
+	})
+
+	t.Run("graph not found error", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		_, err := Log(dir, "nonexistent", LogOptions{})
+		if err == nil {
+			t.Fatal("Log should fail for non-existent graph")
+		}
+		if !strings.Contains(err.Error(), "not found") {
+			t.Errorf("expected 'not found' error, got: %v", err)
+		}
+	})
+
+	t.Run("negative max-count error", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		_, err := Log(dir, "default", LogOptions{MaxCount: -1, HasMaxCount: true})
+		if err == nil {
+			t.Fatal("Log should fail for negative max-count")
+		}
+		if !strings.Contains(err.Error(), "max-count must be a non-negative integer") {
+			t.Errorf("expected 'max-count must be a non-negative integer' error, got: %v", err)
+		}
+	})
+
+	t.Run("max-count limits results", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/a", []byte("first")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Commit(dir, "default", "first commit"); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+		if _, err := Put(dir, "default/b", []byte("second")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Commit(dir, "default", "second commit"); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+
+		result, err := Log(dir, "default", LogOptions{MaxCount: 2, HasMaxCount: true})
+		if err != nil {
+			t.Fatalf("Log returned error: %v", err)
+		}
+
+		if len(result.Entries) != 2 {
+			t.Fatalf("expected 2 entries, got %d", len(result.Entries))
+		}
+		if !strings.Contains(result.Entries[0].Message, "second commit") {
+			t.Errorf("entries[0] should be newest, got %q", result.Entries[0].Message)
+		}
+	})
+
+	t.Run("max-count 0 returns empty", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		result, err := Log(dir, "default", LogOptions{MaxCount: 0, HasMaxCount: true})
+		if err != nil {
+			t.Fatalf("Log returned error: %v", err)
+		}
+
+		if len(result.Entries) != 0 {
+			t.Fatalf("expected 0 entries, got %d", len(result.Entries))
+		}
+	})
+
+	t.Run("max-count exceeding commit count returns all", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		result, err := Log(dir, "default", LogOptions{MaxCount: 100, HasMaxCount: true})
+		if err != nil {
+			t.Fatalf("Log returned error: %v", err)
+		}
+
+		if len(result.Entries) != 1 {
+			t.Fatalf("expected 1 entry (init only), got %d", len(result.Entries))
+		}
+	})
+
+	t.Run("missing Source-Commit trailer produces empty string", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		// Manually create a commit without a Source-Commit trailer
+		repo, err := git.PlainOpen(dir)
+		if err != nil {
+			t.Fatalf("failed to open repo: %v", err)
+		}
+
+		ref, err := repo.Storer.Reference(plumbing.ReferenceName("refs/infra/default"))
+		if err != nil {
+			t.Fatalf("failed to get ref: %v", err)
+		}
+
+		tipCommit, err := repo.CommitObject(ref.Hash())
+		if err != nil {
+			t.Fatalf("failed to read tip commit: %v", err)
+		}
+
+		// Create a new commit with no Source-Commit trailer
+		newCommit := &object.Commit{
+			Author:       tipCommit.Author,
+			Committer:    tipCommit.Committer,
+			Message:      "No trailer here\n",
+			TreeHash:     tipCommit.TreeHash,
+			ParentHashes: []plumbing.Hash{ref.Hash()},
+		}
+
+		obj := repo.Storer.NewEncodedObject()
+		if err := newCommit.Encode(obj); err != nil {
+			t.Fatalf("failed to encode commit: %v", err)
+		}
+		newHash, err := repo.Storer.SetEncodedObject(obj)
+		if err != nil {
+			t.Fatalf("failed to store commit: %v", err)
+		}
+
+		// Update the ref
+		newRef := plumbing.NewHashReference(plumbing.ReferenceName("refs/infra/default"), newHash)
+		if err := repo.Storer.SetReference(newRef); err != nil {
+			t.Fatalf("failed to update ref: %v", err)
+		}
+
+		result, logErr := Log(dir, "default", LogOptions{})
+		if logErr != nil {
+			t.Fatalf("Log returned error: %v", logErr)
+		}
+
+		if len(result.Entries) < 1 {
+			t.Fatal("expected at least 1 entry")
+		}
+		if result.Entries[0].SourceCommit != "" {
+			t.Errorf("expected empty SourceCommit, got %q", result.Entries[0].SourceCommit)
+		}
+	})
+
+	t.Run("broken commit chain returns partial result with warning", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		// Create a commit whose parent hash points to a non-existent object
+		repo, err := git.PlainOpen(dir)
+		if err != nil {
+			t.Fatalf("failed to open repo: %v", err)
+		}
+
+		ref, err := repo.Storer.Reference(plumbing.ReferenceName("refs/infra/default"))
+		if err != nil {
+			t.Fatalf("failed to get ref: %v", err)
+		}
+
+		tipCommit, err := repo.CommitObject(ref.Hash())
+		if err != nil {
+			t.Fatalf("failed to read tip commit: %v", err)
+		}
+
+		// Create a commit with a broken parent hash
+		fakeParent := plumbing.NewHash("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+		newCommit := &object.Commit{
+			Author:       tipCommit.Author,
+			Committer:    tipCommit.Committer,
+			Message:      "Commit with broken parent\n\nSource-Commit: abc123\n",
+			TreeHash:     tipCommit.TreeHash,
+			ParentHashes: []plumbing.Hash{fakeParent},
+		}
+
+		obj := repo.Storer.NewEncodedObject()
+		if err := newCommit.Encode(obj); err != nil {
+			t.Fatalf("failed to encode commit: %v", err)
+		}
+		newHash, err := repo.Storer.SetEncodedObject(obj)
+		if err != nil {
+			t.Fatalf("failed to store commit: %v", err)
+		}
+
+		// Update the ref to the new commit
+		newRef := plumbing.NewHashReference(plumbing.ReferenceName("refs/infra/default"), newHash)
+		if err := repo.Storer.SetReference(newRef); err != nil {
+			t.Fatalf("failed to update ref: %v", err)
+		}
+
+		result, logErr := Log(dir, "default", LogOptions{})
+		if logErr != nil {
+			t.Fatalf("Log should not return error for broken chain, got: %v", logErr)
+		}
+
+		if len(result.Entries) != 1 {
+			t.Fatalf("expected 1 entry (reachable commit only), got %d", len(result.Entries))
+		}
+		if result.Warning == "" {
+			t.Error("expected warning for broken chain, got empty")
+		}
+	})
+
+	t.Run("not a git repository", func(t *testing.T) {
+		t.Parallel()
+		dir := t.TempDir()
+
+		_, err := Log(dir, "default", LogOptions{})
+		if err == nil {
+			t.Fatal("Log should fail for non-repo directory")
+		}
+		if !strings.Contains(err.Error(), "not a git repository") {
+			t.Errorf("expected 'not a git repository' error, got: %v", err)
+		}
+	})
+
+	t.Run("invalid graph name", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		_, err := Log(dir, "a..b", LogOptions{})
+		if err == nil {
+			t.Fatal("Log should fail for invalid graph name")
 		}
 	})
 }

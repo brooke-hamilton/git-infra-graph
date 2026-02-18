@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // stageRefPrefix is the namespace under which all staging refs are stored.
@@ -59,6 +60,27 @@ type CommitResult struct {
 	Graph  string `json:"graph"`  // Graph name
 	Commit string `json:"commit"` // Hash of the new commit
 	Ref    string `json:"ref"`    // Full ref path
+}
+
+// LogEntry represents a single commit in the graph's commit history.
+type LogEntry struct {
+	Hash         string    `json:"hash"`         // Full 40-character commit hash
+	Date         time.Time `json:"date"`         // Committer timestamp
+	SourceCommit string    `json:"sourceCommit"` // Source-Commit trailer value (empty if missing)
+	Author       string    `json:"author"`       // Author name
+	Message      string    `json:"message"`      // Full commit message
+}
+
+// LogOptions controls the behavior of the Log function.
+type LogOptions struct {
+	MaxCount    int  // Maximum number of commits to return
+	HasMaxCount bool // Whether MaxCount was explicitly set
+}
+
+// LogResult is the return value from a successful Log operation.
+type LogResult struct {
+	Entries []LogEntry `json:"entries"`           // Commits in reverse chronological order
+	Warning string     `json:"warning,omitempty"` // Non-empty if chain is broken
 }
 
 // ParseNodePath splits a path into a graph name and node path segments.
