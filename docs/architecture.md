@@ -2,13 +2,17 @@
 
 ## What It Is
 
-Git Infrastructure Graph (`grif`) is a versioned graph database for infrastructure data that runs entirely inside a Git repository. It stores infrastructure entities and their relationships as native Git objects — no external database, no additional services, no new infrastructure to manage.
+Git Infrastructure Graph (`grif`) is a versioned graph database for infrastructure data that runs entirely inside a Git repository. It stores infrastructure entities and their relationships as native Git objects — no external database, no additional services, no new infrastructure to manage. A Golang module and a command-line tool are provided.
 
 Any Git repository that holds Infrastructure as Code can also hold a `grif` graph alongside it, versioned in lockstep with the code it describes.
 
 ## The Problem
 
-Infrastructure teams today lack a simple, version-controlled way to capture the *structure* of their infrastructure — the resources, the hierarchy, and the relationships between them — in a way that travels with the code. Current options are either external databases that require separate hosting, or flat files that offer no query or diff capability.
+Infrastructure teams today lack a simple, version-controlled way to capture the *data* of their infrastructure — the resources, the hierarchy, and the relationships between them — in a way that travels with the code and is directly connected to the actual deployments. They currently capture application code and infrastructure as code (IaC), and some teams use GitOps to capture deployment state. But three things are missing:
+
+- The data model of the deployed infrastructure. Some teams have a sprawl of parameter files. Some teams use GitOps tools capture data , also as parameter files. These files have no relationships to each other and are full of repetition without validation.
+- A versioned history of how the infrastructure evolved over time, including the actual deployment results.
+- A viewable abstraction of the relationships between resources. GitOps environments have some of this data, but it is in two dimensions (flat files), making it difficult to understand.
 
 Current graphing and diagramming tools are all downstream from the sources. This graph is intended to be upstream or adjacent to the sources, and track the whole lifecycle of apps and IaC, including the output of deployments.
 
@@ -16,6 +20,7 @@ Current graphing and diagramming tools are all downstream from the sources. This
 
 `grif` provides a **digital twin** of your applications and infrastructure — a living, version-controlled graph that mirrors the real structure of what you build and operate. It lives directly in the repositories teams already work in.
 
+- A **graph data model** of your apps, infra, environments data (infra parameters).
 - **Track what you have.** Model resources and their containment hierarchy — subscriptions, resource groups, networks, compute — as a graph that reflects the real structure of your infrastructure.
 - **See what changed and when.** Every graph mutation is committed with a full history. Teams can review exactly which resources were added, modified, or removed at any point in time, and tie each change back to the repository commit that caused it.
 - **No new infrastructure to run.** The graph is stored as Git objects. There is no database to provision, no service to keep running, and no credentials to manage. If you have a Git repo, you have everything you need.
