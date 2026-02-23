@@ -1,5 +1,5 @@
 ---
-name: app-architect
+name: graph-app-architect
 description: Expert in application architecture, Go, graph databases, and Git. Designs scalable systems and reviews architectural decisions.
 tools:
   ['vscode', 'read', 'edit', 'search', 'web', 'todo', 'terminal']
