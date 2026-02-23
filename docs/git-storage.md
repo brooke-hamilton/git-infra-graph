@@ -116,7 +116,7 @@ Source-Commit: a1b2c3d4e5f6...
 
 This records which repository commit (on your normal branches) the graph change corresponds to. It enables co-versioning — you can always trace a graph snapshot back to the exact state of your IaC code.
 
-The following diagram shows two parallel commit histories living in the same repository. The top row is the normal branch (`main`) where IaC source code evolves. The bottom row is the graph ref (`refs/infra/my-infra`) where `grif` records snapshots of the infrastructure graph. Each graph commit links back to the repo commit that triggered it via the `Source-Commit` trailer.
+The following diagram shows two parallel commit histories living in the same repository. The top row is the normal branch (`main`) where IaC source code evolves. The bottom row is the graph ref (`refs/infra/my-infra`) where `grif` records snapshots of the infrastructure graph. Each repo commit links to the graph commit it triggered via the `Source-Commit` trailer.
 
 ```mermaid
 graph LR
