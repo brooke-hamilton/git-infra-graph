@@ -158,3 +158,57 @@ Git's built-in storage optimizations also apply automatically:
 - **Deduplication** — If two nodes have identical content, they share a single blob object.
 - **Structural sharing** — If only one node changes, only the affected trees are rewritten. Unchanged subtrees keep their existing objects.
 - **Garbage collection** — When a graph is deleted (its ref is removed), the objects it pointed to become unreferenced and are cleaned up by Git's normal garbage collection.
+
+## Sharing Graphs with a Remote
+
+Because graph data is stored as standard Git objects under custom refs, you can push and pull graphs to any Git remote (including GitHub) using normal `git push` and `git fetch` commands.
+
+### Pushing a graph to a remote
+
+```bash
+git push origin refs/infra/my-infra:refs/infra/my-infra
+```
+
+To push all graphs at once:
+
+```bash
+git push origin 'refs/infra/*:refs/infra/*'
+```
+
+You can verify the ref arrived on the remote:
+
+```bash
+git ls-remote origin | grep infra
+```
+
+### Pulling a graph from a remote
+
+A regular `git clone` only fetches `refs/heads/*` and `refs/tags/*`, so graph refs are not included automatically. After cloning, fetch them explicitly:
+
+```bash
+git fetch origin refs/infra/my-infra:refs/infra/my-infra
+```
+
+To fetch all graphs:
+
+```bash
+git fetch origin 'refs/infra/*:refs/infra/*'
+```
+
+After fetching, `grif` commands work normally — `grif get`, `grif status`, and `grif commit` all operate on the local refs.
+
+### Automatic fetching
+
+To make `git fetch` and `git pull` automatically include graph refs, add a fetch refspec to your remote config:
+
+```bash
+git config --add remote.origin.fetch '+refs/infra/*:refs/infra/*'
+```
+
+After this, every `git fetch` brings down graph refs alongside branches and tags.
+
+### Notes
+
+- **Staging refs are local.** Only committed graph refs (`refs/infra/*`) should be pushed. Staging refs (`refs/infra-stage/*`) are local working state and should not be shared.
+- **GitHub visibility.** Custom refs do not appear in GitHub's branch or tag dropdowns, but they are accessible via `git ls-remote`, the GitHub Git References API, and `git clone --mirror`.
+- **Non-fast-forward pushes.** Git rejects pushes where the remote ref has diverged. Use `--force` only if you are certain you want to overwrite the remote history.
