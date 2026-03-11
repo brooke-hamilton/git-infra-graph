@@ -2,9 +2,7 @@
 
 Infrastructure graph management backed by Git-native storage.
 
-`git-infra-graph` stores infrastructure graphs as Git objects (trees, commits, refs)
-under a custom `refs/infra/` namespace. No external database required — all
-data lives in your Git repository.
+Git Infrastructure Graph is a versioned graph database that stores infrastructure topology directly in Git's object database — blobs hold node payloads, trees encode containment hierarchy, commits capture immutable point-in-time snapshots, and refs under a dedicated `refs/infra/` namespace track graph lineage — so that infrastructure entities and their relationships live alongside IaC source code with full history, structural sharing via content-addressable deduplication, and distributed collaboration through standard Git push/pull mechanics, all without provisioning an external database, running a daemon, or managing additional credentials.
 
 ## Installation
 
