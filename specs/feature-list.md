@@ -160,8 +160,8 @@ default
 ├── compute
 │   └── instance  (blob, c3d4e5f6)
 └── network
-    ├── subnet    (blob, e5f6a7b8)
-    └── vpc       (blob, a1b2c3d4)
+    ├── subnet  (blob, e5f6a7b8)
+    └── vpc  (blob, a1b2c3d4)
 
 grif tree
 # Output (multiple graphs):
@@ -169,8 +169,8 @@ default
 ├── compute
 │   └── instance  (blob, c3d4e5f6)
 └── network
-    ├── subnet    (blob, e5f6a7b8)
-    └── vpc       (blob, a1b2c3d4)
+    ├── subnet  (blob, e5f6a7b8)
+    └── vpc  (blob, a1b2c3d4)
 staging
 └── compute
     └── instance  (blob, c3d4e5f6)
