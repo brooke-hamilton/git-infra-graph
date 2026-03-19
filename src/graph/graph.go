@@ -964,7 +964,13 @@ func treeFromRepo(repo *git.Repository, graphName string, segments []string, opt
 }
 
 // buildTreeChildren recursively builds TreeItem children for a given tree hash.
+const maxTreeDepth = 1024
+
 func buildTreeChildren(repo *git.Repository, treeHash plumbing.Hash, opts TreeOptions, currentDepth int) ([]TreeItem, error) {
+	if currentDepth > maxTreeDepth {
+		return nil, fmt.Errorf("tree depth %d exceeds maximum supported depth %d", currentDepth, maxTreeDepth)
+	}
+
 	tree, err := gitops.GetTreeByHash(repo, treeHash)
 	if err != nil {
 		return nil, err
