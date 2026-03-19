@@ -262,6 +262,55 @@ grif log --json default
 grif log --oneline --max-count 5 default
 ```
 
+### View tree hierarchy
+
+```bash
+grif tree [<graph>[/<path>]] [--depth N] [--json]
+```
+
+Displays the recursive tree structure of a graph using box-drawing characters.
+When no argument is given, shows trees for all graphs. When a graph name is
+given, shows the full tree. When a path is given, shows the subtree at that
+path.
+
+```bash
+# View full tree for a graph
+grif tree default
+# Output:
+# default
+# ├── compute
+# │   └── instance  (blob, c3d4e5f6)
+# └── network
+#     ├── subnet  (blob, e5f6a7b8)
+#     └── vpc  (blob, a1b2c3d4)
+
+# View trees for all graphs
+grif tree
+# Output shows each graph separated by a blank line
+
+# View a subtree
+grif tree default/network
+# Output:
+# network
+# ├── subnet  (blob, e5f6a7b8)
+# └── vpc  (blob, a1b2c3d4)
+
+# Limit recursion depth
+grif tree default --depth 1
+# Output:
+# default
+# ├── compute
+# └── network
+
+# JSON output
+grif tree --json default
+# Output: {"name":"default","type":"tree","id":"d4e5f6a7","children":[...]}
+
+# All graphs in JSON
+grif tree --json
+# Output: {"graphs":[...]}
+```
+
 ## Error Handling
 
 All errors print to stderr and exit with code 1.

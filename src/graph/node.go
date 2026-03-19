@@ -108,6 +108,30 @@ func ParseNodePath(path string) (graphName string, segments []string, err error)
 	return parts[0], parts[1:], nil
 }
 
+// TreeItem represents a single node in the recursive tree output.
+type TreeItem struct {
+	Name     string     `json:"name"`               // Single path segment name
+	Type     NodeType   `json:"type"`               // "tree" or "blob"
+	ID       string     `json:"id"`                 // First 8 chars of SHA hash
+	Children []TreeItem `json:"children,omitempty"` // Recursive children; nil for blobs
+}
+
+// TreeOptions controls the behavior of the Tree and TreeAll functions.
+type TreeOptions struct {
+	Depth    int  // Maximum recursion depth (0 = root only)
+	HasDepth bool // Whether Depth was explicitly set
+}
+
+// TreeResult holds the recursive tree for a single graph or subtree.
+// Structurally identical to TreeItem for JSON serialization.
+type TreeResult = TreeItem
+
+// TreeAllResult holds the results of listing trees for all graphs.
+type TreeAllResult struct {
+	Graphs   []TreeResult `json:"graphs"`             // One per graph, sorted alphabetically
+	Warnings []string     `json:"warnings,omitempty"` // Non-empty if graphs failed to resolve
+}
+
 // stageRefName returns the full staging ref path for a graph name.
 func stageRefName(name string) string {
 	return stageRefPrefix + name

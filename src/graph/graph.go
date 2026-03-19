@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/brooke-hamilton/git-infra-graph/src/graph/internal/gitops"
+	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -872,4 +873,241 @@ func Log(repoPath string, graphName string, opts LogOptions) (*LogResult, error)
 	}
 
 	return &LogResult{Entries: entries}, nil
+}
+
+// Tree returns the recursive tree structure for a single graph or subtree.
+//
+// The path argument follows the same format as Get: "graph" for the full graph,
+// or "graph/path/to/subtree" for a subtree. When the path resolves to a blob,
+// the result contains a single node with no children.
+//
+// The root tree is resolved from the staging ref (if present) or the committed
+// tree, consistent with Get behavior.
+func Tree(repoPath string, path string, opts TreeOptions) (*TreeResult, error) {
+	if opts.HasDepth && opts.Depth < 0 {
+		return nil, errors.New("depth must be a non-negative integer")
+	}
+
+	if path == "" {
+		return nil, errors.New("path must not be empty")
+	}
+
+	graphName, segments, err := ParseNodePath(path)
+	if err != nil {
+		return nil, err
+	}
+
+	repo, err := gitops.OpenRepo(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return treeFromRepo(repo, graphName, segments, opts)
+}
+
+// treeFromRepo is the internal implementation of Tree that operates on an
+// already-opened repository, avoiding redundant opens when called from TreeAll.
+func treeFromRepo(repo *git.Repository, graphName string, segments []string, opts TreeOptions) (*TreeResult, error) {
+	rootTreeHash, err := gitops.ResolveRootTree(repo, graphName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Walk to target if path has segments beyond graph name
+	currentTreeHash := rootTreeHash
+	resultName := graphName
+
+	for _, seg := range segments {
+		tree, err := gitops.GetTreeByHash(repo, currentTreeHash)
+		if err != nil {
+			return nil, err
+		}
+
+		entry := findEntry(tree, seg)
+		if entry == nil {
+			return nil, fmt.Errorf("path '%s' not found in graph '%s'", strings.Join(segments, "/"), graphName)
+		}
+
+		if entry.Mode != filemode.Dir {
+			// Blob at this path — return single item
+			return &TreeResult{
+				Name: seg,
+				Type: BlobNode,
+				ID:   entry.Hash.String()[:8],
+			}, nil
+		}
+
+		currentTreeHash = entry.Hash
+		resultName = seg
+	}
+
+	// Build tree from currentTreeHash
+	if opts.HasDepth && opts.Depth == 0 {
+		return &TreeResult{
+			Name: resultName,
+			Type: TreeNode,
+			ID:   currentTreeHash.String()[:8],
+		}, nil
+	}
+
+	children, err := buildTreeChildren(repo, currentTreeHash, opts, 1)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TreeResult{
+		Name:     resultName,
+		Type:     TreeNode,
+		ID:       currentTreeHash.String()[:8],
+		Children: children,
+	}, nil
+}
+
+// buildTreeChildren recursively builds TreeItem children for a given tree hash.
+const maxTreeDepth = 1024
+
+func buildTreeChildren(repo *git.Repository, treeHash plumbing.Hash, opts TreeOptions, currentDepth int) ([]TreeItem, error) {
+	if currentDepth > maxTreeDepth {
+		return nil, fmt.Errorf("tree depth %d exceeds maximum supported depth %d", currentDepth, maxTreeDepth)
+	}
+
+	tree, err := gitops.GetTreeByHash(repo, treeHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tree.Entries) == 0 {
+		return []TreeItem{}, nil
+	}
+
+	items := make([]TreeItem, 0, len(tree.Entries))
+	for _, entry := range tree.Entries {
+		item := TreeItem{
+			Name: entry.Name,
+			ID:   entry.Hash.String()[:8],
+		}
+
+		if entry.Mode == filemode.Dir {
+			item.Type = TreeNode
+			// Recurse if depth allows
+			if !opts.HasDepth || currentDepth < opts.Depth {
+				children, err := buildTreeChildren(repo, entry.Hash, opts, currentDepth+1)
+				if err != nil {
+					return nil, err
+				}
+				item.Children = children
+			}
+		} else {
+			item.Type = BlobNode
+		}
+
+		items = append(items, item)
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Name < items[j].Name
+	})
+
+	return items, nil
+}
+
+// TreeAll returns the recursive tree structure for all graphs in the repository.
+//
+// Graphs are returned in alphabetical order. If a graph fails to resolve,
+// it is skipped with a warning rather than failing the entire operation.
+func TreeAll(repoPath string, opts TreeOptions) (*TreeAllResult, error) {
+	if opts.HasDepth && opts.Depth < 0 {
+		return nil, errors.New("depth must be a non-negative integer")
+	}
+
+	repo, err := gitops.OpenRepo(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	names, err := gitops.ListRefsByPrefix(repo, refPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(names) == 0 {
+		return nil, errors.New("no graphs found")
+	}
+
+	sort.Strings(names)
+
+	graphs := make([]TreeResult, 0, len(names))
+	var warnings []string
+
+	for _, name := range names {
+		result, err := treeFromRepo(repo, name, nil, opts)
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("failed to resolve graph '%s': %v", name, err))
+			continue
+		}
+		graphs = append(graphs, *result)
+	}
+
+	return &TreeAllResult{
+		Graphs:   graphs,
+		Warnings: warnings,
+	}, nil
+}
+
+// FormatTree formats a TreeResult as a human-readable string using box-drawing
+// characters. Tree nodes show their name only; blob nodes show
+// "name  (blob, <hash>)" with a two-space separator.
+func FormatTree(tree *TreeResult) string {
+	var b strings.Builder
+	if tree.Type == BlobNode {
+		fmt.Fprintf(&b, "%s  (blob, %s)\n", tree.Name, tree.ID)
+		return b.String()
+	}
+
+	b.WriteString(tree.Name)
+	b.WriteByte('\n')
+	formatTreeChildren(&b, tree.Children, "")
+	return b.String()
+}
+
+// formatTreeChildren recursively formats children with proper box-drawing prefixes.
+func formatTreeChildren(b *strings.Builder, children []TreeItem, prefix string) {
+	for i, child := range children {
+		isLast := i == len(children)-1
+
+		connector := "├── "
+		if isLast {
+			connector = "└── "
+		}
+
+		b.WriteString(prefix)
+		b.WriteString(connector)
+		b.WriteString(child.Name)
+
+		if child.Type == BlobNode {
+			fmt.Fprintf(b, "  (blob, %s)", child.ID)
+		}
+		b.WriteByte('\n')
+
+		if child.Type == TreeNode && len(child.Children) > 0 {
+			childPrefix := prefix + "│   "
+			if isLast {
+				childPrefix = prefix + "    "
+			}
+			formatTreeChildren(b, child.Children, childPrefix)
+		}
+	}
+}
+
+// FormatTreeAll formats a TreeAllResult as a human-readable string, with each
+// graph's tree separated by a blank line.
+func FormatTreeAll(result *TreeAllResult) string {
+	var b strings.Builder
+	for i, g := range result.Graphs {
+		b.WriteString(FormatTree(&g))
+		if i < len(result.Graphs)-1 {
+			b.WriteByte('\n')
+		}
+	}
+	return b.String()
 }

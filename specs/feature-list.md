@@ -145,29 +145,50 @@ Display the full tree structure of a graph or subtree.
 
 **Scope**:
 
-- `grif tree <graph>[/<path>]` — recursively list all descendants of the specified tree node
+- `grif tree [<graph>[/<path>]]` — recursively list all descendants of the specified tree node
+- When no argument is provided, display the tree for all graphs (if only one graph exists, show it; if multiple exist, show all)
 - Display output as an indented tree with type indicators
 - Support `--depth N` flag to limit recursion depth
 - Support `--json` flag for machine-readable output
-- Accept an optional graph name argument (default to the only graph if one exists)
 
 **Example output (human)**:
 
 ```text
+grif tree
+# Output (single graph):
+default
+├── compute
+│   └── instance  (blob, c3d4e5f6)
+└── network
+    ├── subnet  (blob, e5f6a7b8)
+    └── vpc  (blob, a1b2c3d4)
+
+grif tree
+# Output (multiple graphs):
+default
+├── compute
+│   └── instance  (blob, c3d4e5f6)
+└── network
+    ├── subnet  (blob, e5f6a7b8)
+    └── vpc  (blob, a1b2c3d4)
+staging
+└── compute
+    └── instance  (blob, c3d4e5f6)
+
 grif tree default
 # Output:
-# default/
-#   network/
-#     vpc        (blob, a1b2c3d4)
-#     subnet     (blob, e5f6a7b8)
-#   compute/
-#     instance   (blob, c3d4e5f6)
+default
+├── compute
+│   └── instance  (blob, c3d4e5f6)
+└── network
+    ├── subnet    (blob, e5f6a7b8)
+    └── vpc       (blob, a1b2c3d4)
 
 grif tree default/network
 # Output:
-# network/
-#   vpc        (blob, a1b2c3d4)
-#   subnet     (blob, e5f6a7b8)
+network
+├── subnet  (blob, e5f6a7b8)
+└── vpc     (blob, a1b2c3d4)
 ```
 
 ---

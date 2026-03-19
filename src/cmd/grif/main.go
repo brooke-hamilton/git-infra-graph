@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"text/tabwriter"
 
 	"github.com/brooke-hamilton/git-infra-graph/src/graph"
@@ -41,6 +42,8 @@ func main() {
 		runCommit(jsonMode)
 	case "status":
 		runStatus(jsonMode)
+	case "tree":
+		runTree(jsonMode)
 	default:
 		printError(jsonMode, fmt.Sprintf("unknown command: %s", command))
 		os.Exit(1)
@@ -459,6 +462,69 @@ func runStatus(jsonMode bool) {
 	}
 }
 
+func runTree(jsonMode bool) {
+	if hasFlag("--help") || hasFlag("-h") {
+		printTreeUsage()
+		return
+	}
+
+	repoPath := "."
+	opts := graph.TreeOptions{}
+
+	// Parse --depth flag
+	depthStr := flagValue("--depth")
+	if depthStr != "" {
+		depth, err := strconv.Atoi(depthStr)
+		if err != nil {
+			printError(jsonMode, fmt.Sprintf("invalid depth value: %s", depthStr))
+			os.Exit(1)
+		}
+		opts.Depth = depth
+		opts.HasDepth = true
+	}
+
+	args := positionalArgs()
+
+	if len(args) == 0 {
+		// All-graphs mode
+		result, err := graph.TreeAll(repoPath, opts)
+		if err != nil {
+			printError(jsonMode, err.Error())
+			os.Exit(1)
+		}
+
+		if jsonMode {
+			out, _ := json.Marshal(result)
+			fmt.Println(string(out))
+		} else {
+			for _, w := range result.Warnings {
+				fmt.Fprintf(os.Stderr, "Warning: %s\n", w)
+			}
+			fmt.Print(graph.FormatTreeAll(result))
+		}
+		return
+	}
+
+	if len(args) > 1 {
+		printError(jsonMode, fmt.Sprintf("tree expects at most 1 argument, got %d", len(args)))
+		os.Exit(1)
+	}
+
+	path := args[0]
+	result, err := graph.Tree(repoPath, path, opts)
+	if err != nil {
+		printError(jsonMode, err.Error())
+		os.Exit(1)
+	}
+
+	if jsonMode {
+		out, _ := json.Marshal(result)
+		fmt.Println(string(out))
+	} else {
+		fmt.Print(graph.FormatTree(result))
+	}
+}
+
 func printUsage() {
 	fmt.Fprintln(os.Stderr, "Usage: grif <command> [--json] [args]")
 	fmt.Fprintln(os.Stderr, "")
@@ -473,6 +539,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  rm <path>         Delete a node")
 	fmt.Fprintln(os.Stderr, "  commit [graph]    Commit staged changes")
 	fmt.Fprintln(os.Stderr, "  status [graph]    Show uncommitted changes")
+	fmt.Fprintln(os.Stderr, "  tree [path]       Show tree hierarchy of a graph")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Flags:")
 	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
@@ -628,6 +695,32 @@ func printStatusUsage() {
 	fmt.Fprintln(os.Stderr, "  grif status default --json")
 }
 
+func printTreeUsage() {
+	fmt.Fprintln(os.Stderr, "Usage: grif tree [<graph>[/<path>]] [--depth N] [--json]")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Show tree hierarchy of an infrastructure graph.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Displays the recursive tree structure using box-drawing characters.")
+	fmt.Fprintln(os.Stderr, "When no argument is given, shows trees for all graphs.")
+	fmt.Fprintln(os.Stderr, "When a graph name is given, shows the full tree for that graph.")
+	fmt.Fprintln(os.Stderr, "When a path is given (graph/subtree), shows only that subtree.")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Arguments:")
+	fmt.Fprintln(os.Stderr, "  [<graph>[/<path>]] Graph name, optionally followed by subtree path")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Flags:")
+	fmt.Fprintln(os.Stderr, "  --depth N         Limit recursion to N levels below root")
+	fmt.Fprintln(os.Stderr, "  --json            Output in JSON format")
+	fmt.Fprintln(os.Stderr, "  -h, --help        Show this help")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Examples:")
+	fmt.Fprintln(os.Stderr, "  grif tree")
+	fmt.Fprintln(os.Stderr, "  grif tree default")
+	fmt.Fprintln(os.Stderr, "  grif tree default/network")
+	fmt.Fprintln(os.Stderr, "  grif tree default --depth 1")
+	fmt.Fprintln(os.Stderr, "  grif tree --json")
+}
+
 func printPutUsage() {
 	fmt.Fprintln(os.Stderr, "Usage: grif put <graph/path> [options]")
 	fmt.Fprintln(os.Stderr, "")
@@ -688,7 +781,7 @@ func positionalArgs() []string {
 		if arg == "--json" || arg == "-h" || arg == "--help" {
 			continue
 		}
-		if arg == "--data" || arg == "--file" || arg == "--message" {
+		if arg == "--data" || arg == "--file" || arg == "--message" || arg == "--depth" {
 			skip = true
 			continue
 		}

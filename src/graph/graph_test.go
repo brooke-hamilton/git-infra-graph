@@ -1,8 +1,11 @@
 package graph
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -1691,4 +1694,781 @@ func TestLog(t *testing.T) {
 			t.Fatal("Log should fail for invalid graph name")
 		}
 	})
+}
+
+func TestTree(t *testing.T) {
+	t.Parallel()
+
+	t.Run("full graph tree with multiple levels", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/network/vpc", []byte("vpc-data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Put(dir, "default/network/subnet", []byte("subnet-data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Put(dir, "default/compute/instance", []byte("instance-data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Commit(dir, "default", ""); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+
+		result, err := Tree(dir, "default", TreeOptions{})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+
+		if result.Name != "default" {
+			t.Errorf("Name = %q, want %q", result.Name, "default")
+		}
+		if result.Type != TreeNode {
+			t.Errorf("Type = %q, want %q", result.Type, TreeNode)
+		}
+		if len(result.Children) != 2 {
+			t.Fatalf("expected 2 children (compute, network), got %d", len(result.Children))
+		}
+		// Children should be sorted alphabetically
+		if result.Children[0].Name != "compute" {
+			t.Errorf("first child = %q, want %q", result.Children[0].Name, "compute")
+		}
+		if result.Children[1].Name != "network" {
+			t.Errorf("second child = %q, want %q", result.Children[1].Name, "network")
+		}
+		// Verify nested children
+		if len(result.Children[0].Children) != 1 {
+			t.Fatalf("compute should have 1 child, got %d", len(result.Children[0].Children))
+		}
+		if result.Children[0].Children[0].Name != "instance" {
+			t.Errorf("compute child = %q, want %q", result.Children[0].Children[0].Name, "instance")
+		}
+		if result.Children[0].Children[0].Type != BlobNode {
+			t.Errorf("instance type = %q, want %q", result.Children[0].Children[0].Type, BlobNode)
+		}
+		if len(result.Children[0].Children[0].ID) != 8 {
+			t.Errorf("ID length = %d, want 8", len(result.Children[0].Children[0].ID))
+		}
+	})
+
+	t.Run("empty graph", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "empty"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		result, err := Tree(dir, "empty", TreeOptions{})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		if result.Name != "empty" {
+			t.Errorf("Name = %q, want %q", result.Name, "empty")
+		}
+		if result.Type != TreeNode {
+			t.Errorf("Type = %q, want %q", result.Type, TreeNode)
+		}
+		if len(result.Children) != 0 {
+			t.Errorf("expected 0 children, got %d", len(result.Children))
+		}
+	})
+
+	t.Run("graph not found", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		_, err := Tree(dir, "nonexistent", TreeOptions{})
+		if err == nil {
+			t.Fatal("expected error for nonexistent graph")
+		}
+		if !strings.Contains(err.Error(), "not found") {
+			t.Errorf("expected 'not found' in error, got: %v", err)
+		}
+	})
+
+	t.Run("subtree path resolving to tree node", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/network/vpc", []byte("vpc-data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Put(dir, "default/network/subnet", []byte("subnet-data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+
+		result, err := Tree(dir, "default/network", TreeOptions{})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		if result.Name != "network" {
+			t.Errorf("Name = %q, want %q", result.Name, "network")
+		}
+		if result.Type != TreeNode {
+			t.Errorf("Type = %q, want %q", result.Type, TreeNode)
+		}
+		if len(result.Children) != 2 {
+			t.Fatalf("expected 2 children, got %d", len(result.Children))
+		}
+		if result.Children[0].Name != "subnet" {
+			t.Errorf("first child = %q, want %q", result.Children[0].Name, "subnet")
+		}
+		if result.Children[1].Name != "vpc" {
+			t.Errorf("second child = %q, want %q", result.Children[1].Name, "vpc")
+		}
+	})
+
+	t.Run("subtree path resolving to blob node", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/network/vpc", []byte("vpc-data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+
+		result, err := Tree(dir, "default/network/vpc", TreeOptions{})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		if result.Name != "vpc" {
+			t.Errorf("Name = %q, want %q", result.Name, "vpc")
+		}
+		if result.Type != BlobNode {
+			t.Errorf("Type = %q, want %q", result.Type, BlobNode)
+		}
+		if result.Children != nil {
+			t.Errorf("expected nil children for blob, got %v", result.Children)
+		}
+		if len(result.ID) != 8 {
+			t.Errorf("ID length = %d, want 8", len(result.ID))
+		}
+	})
+
+	t.Run("path not found", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		_, err := Tree(dir, "default/nonexistent", TreeOptions{})
+		if err == nil {
+			t.Fatal("expected error for nonexistent path")
+		}
+		if !strings.Contains(err.Error(), "not found") {
+			t.Errorf("expected 'not found' in error, got: %v", err)
+		}
+	})
+
+	t.Run("negative depth error", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		_, err := Tree(dir, "default", TreeOptions{Depth: -1, HasDepth: true})
+		if err == nil {
+			t.Fatal("expected error for negative depth")
+		}
+		if !strings.Contains(err.Error(), "depth must be a non-negative integer") {
+			t.Errorf("expected depth error, got: %v", err)
+		}
+	})
+
+	t.Run("depth 0 returns root only", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/compute/instance", []byte("data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+
+		result, err := Tree(dir, "default", TreeOptions{Depth: 0, HasDepth: true})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		if result.Name != "default" {
+			t.Errorf("Name = %q, want %q", result.Name, "default")
+		}
+		if result.Children != nil {
+			t.Errorf("depth 0 should have nil children, got %v", result.Children)
+		}
+	})
+
+	t.Run("depth 1 returns root and immediate children", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/compute/instance", []byte("data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Put(dir, "default/network/vpc", []byte("data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+
+		result, err := Tree(dir, "default", TreeOptions{Depth: 1, HasDepth: true})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		if len(result.Children) != 2 {
+			t.Fatalf("expected 2 children, got %d", len(result.Children))
+		}
+		// Children should be trees but have nil children (depth exhausted)
+		for _, child := range result.Children {
+			if child.Type != TreeNode {
+				t.Errorf("child %q type = %q, want %q", child.Name, child.Type, TreeNode)
+			}
+			if child.Children != nil {
+				t.Errorf("child %q should have nil children at depth 1, got %d", child.Name, len(child.Children))
+			}
+		}
+	})
+
+	t.Run("depth exceeding actual depth returns full tree", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/compute/instance", []byte("data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+
+		result, err := Tree(dir, "default", TreeOptions{Depth: 100, HasDepth: true})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		if len(result.Children) != 1 {
+			t.Fatalf("expected 1 child, got %d", len(result.Children))
+		}
+		if len(result.Children[0].Children) != 1 {
+			t.Fatalf("expected 1 grandchild, got %d", len(result.Children[0].Children))
+		}
+	})
+
+	t.Run("single segment path returns full tree", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/compute/instance", []byte("data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+
+		result, err := Tree(dir, "default", TreeOptions{})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		if result.Name != "default" {
+			t.Errorf("Name = %q, want %q", result.Name, "default")
+		}
+		if len(result.Children) != 1 {
+			t.Fatalf("expected 1 child, got %d", len(result.Children))
+		}
+	})
+
+	t.Run("staged tree preferred over committed tree", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		if _, err := Put(dir, "default/compute/instance", []byte("data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Commit(dir, "default", "first commit"); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+
+		// Stage a new node without committing
+		if _, err := Put(dir, "default/network/vpc", []byte("vpc-data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+
+		result, err := Tree(dir, "default", TreeOptions{})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		// Staged tree should have both compute and network
+		if len(result.Children) != 2 {
+			t.Fatalf("expected 2 children (staged tree), got %d", len(result.Children))
+		}
+	})
+
+	t.Run("not a Git repo", func(t *testing.T) {
+		t.Parallel()
+		dir := t.TempDir()
+
+		_, err := Tree(dir, "default", TreeOptions{})
+		if err == nil {
+			t.Fatal("expected error for non-repo directory")
+		}
+		if !strings.Contains(err.Error(), "not a git repository") {
+			t.Errorf("expected 'not a git repository' error, got: %v", err)
+		}
+	})
+
+	t.Run("empty path returns error", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		_, err := Tree(dir, "", TreeOptions{})
+		if err == nil {
+			t.Fatal("expected error for empty path")
+		}
+		if !strings.Contains(err.Error(), "path must not be empty") {
+			t.Errorf("expected 'path must not be empty' error, got: %v", err)
+		}
+	})
+
+	t.Run("children sorted alphabetically at each level", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		// Insert in non-alphabetical order
+		for _, name := range []string{"zebra", "alpha", "middle"} {
+			if _, err := Put(dir, "default/"+name, []byte("data")); err != nil {
+				t.Fatalf("Put failed: %v", err)
+			}
+		}
+
+		result, err := Tree(dir, "default", TreeOptions{})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+		if len(result.Children) != 3 {
+			t.Fatalf("expected 3 children, got %d", len(result.Children))
+		}
+		expected := []string{"alpha", "middle", "zebra"}
+		for i, child := range result.Children {
+			if child.Name != expected[i] {
+				t.Errorf("child[%d] = %q, want %q", i, child.Name, expected[i])
+			}
+		}
+	})
+}
+
+func TestTreeAll(t *testing.T) {
+	t.Parallel()
+
+	t.Run("multiple graphs in alphabetical order", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		for _, name := range []string{"staging", "default", "production"} {
+			if err := Init(dir, name); err != nil {
+				t.Fatalf("Init(%s) failed: %v", name, err)
+			}
+		}
+		if _, err := Put(dir, "default/compute/instance", []byte("data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Commit(dir, "default", ""); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+		if _, err := Put(dir, "staging/network/vpc", []byte("data")); err != nil {
+			t.Fatalf("Put failed: %v", err)
+		}
+		if _, err := Commit(dir, "staging", ""); err != nil {
+			t.Fatalf("Commit failed: %v", err)
+		}
+
+		result, err := TreeAll(dir, TreeOptions{})
+		if err != nil {
+			t.Fatalf("TreeAll returned error: %v", err)
+		}
+
+		if len(result.Graphs) != 3 {
+			t.Fatalf("expected 3 graphs, got %d", len(result.Graphs))
+		}
+		expected := []string{"default", "production", "staging"}
+		for i, g := range result.Graphs {
+			if g.Name != expected[i] {
+				t.Errorf("graphs[%d].Name = %q, want %q", i, g.Name, expected[i])
+			}
+		}
+	})
+
+	t.Run("single graph", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "only"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+
+		result, err := TreeAll(dir, TreeOptions{})
+		if err != nil {
+			t.Fatalf("TreeAll returned error: %v", err)
+		}
+		if len(result.Graphs) != 1 {
+			t.Fatalf("expected 1 graph, got %d", len(result.Graphs))
+		}
+		if result.Graphs[0].Name != "only" {
+			t.Errorf("Name = %q, want %q", result.Graphs[0].Name, "only")
+		}
+	})
+
+	t.Run("no graphs found", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		_, err := TreeAll(dir, TreeOptions{})
+		if err == nil {
+			t.Fatal("expected error when no graphs found")
+		}
+		if !strings.Contains(err.Error(), "no graphs found") {
+			t.Errorf("expected 'no graphs found' error, got: %v", err)
+		}
+	})
+
+	t.Run("negative depth error", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		_, err := TreeAll(dir, TreeOptions{Depth: -1, HasDepth: true})
+		if err == nil {
+			t.Fatal("expected error for negative depth")
+		}
+		if !strings.Contains(err.Error(), "depth must be a non-negative integer") {
+			t.Errorf("expected depth error, got: %v", err)
+		}
+	})
+
+	t.Run("depth limiting applied uniformly", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		for _, name := range []string{"alpha", "beta"} {
+			if err := Init(dir, name); err != nil {
+				t.Fatalf("Init failed: %v", err)
+			}
+			if _, err := Put(dir, name+"/compute/instance", []byte("data")); err != nil {
+				t.Fatalf("Put failed: %v", err)
+			}
+			if _, err := Commit(dir, name, ""); err != nil {
+				t.Fatalf("Commit failed: %v", err)
+			}
+		}
+
+		result, err := TreeAll(dir, TreeOptions{Depth: 1, HasDepth: true})
+		if err != nil {
+			t.Fatalf("TreeAll returned error: %v", err)
+		}
+		for _, g := range result.Graphs {
+			if len(g.Children) != 1 {
+				t.Errorf("graph %q: expected 1 child at depth 1, got %d", g.Name, len(g.Children))
+			}
+			for _, child := range g.Children {
+				if child.Children != nil {
+					t.Errorf("graph %q child %q: expected nil children at depth 1", g.Name, child.Name)
+				}
+			}
+		}
+	})
+}
+
+func TestFormatTree(t *testing.T) {
+	t.Parallel()
+
+	t.Run("box-drawing connectors", func(t *testing.T) {
+		t.Parallel()
+
+		tree := &TreeResult{
+			Name: "default",
+			Type: TreeNode,
+			ID:   "d4e5f6a7",
+			Children: []TreeItem{
+				{
+					Name: "compute",
+					Type: TreeNode,
+					ID:   "b8c9d0e1",
+					Children: []TreeItem{
+						{Name: "instance", Type: BlobNode, ID: "c3d4e5f6"},
+					},
+				},
+				{
+					Name: "network",
+					Type: TreeNode,
+					ID:   "a7b8c9d0",
+					Children: []TreeItem{
+						{Name: "subnet", Type: BlobNode, ID: "e5f6a7b8"},
+						{Name: "vpc", Type: BlobNode, ID: "a1b2c3d4"},
+					},
+				},
+			},
+		}
+
+		got := FormatTree(tree)
+		expected := "default\n" +
+			"├── compute\n" +
+			"│   └── instance  (blob, c3d4e5f6)\n" +
+			"└── network\n" +
+			"    ├── subnet  (blob, e5f6a7b8)\n" +
+			"    └── vpc  (blob, a1b2c3d4)\n"
+
+		if got != expected {
+			t.Errorf("FormatTree mismatch:\ngot:\n%s\nexpected:\n%s", got, expected)
+		}
+	})
+
+	t.Run("blob annotation format", func(t *testing.T) {
+		t.Parallel()
+
+		tree := &TreeResult{
+			Name: "default",
+			Type: TreeNode,
+			ID:   "abcdef12",
+			Children: []TreeItem{
+				{Name: "myblob", Type: BlobNode, ID: "12345678"},
+			},
+		}
+
+		got := FormatTree(tree)
+		if !strings.Contains(got, "myblob  (blob, 12345678)") {
+			t.Errorf("expected blob annotation format, got:\n%s", got)
+		}
+	})
+
+	t.Run("tree nodes show name only", func(t *testing.T) {
+		t.Parallel()
+
+		tree := &TreeResult{
+			Name: "default",
+			Type: TreeNode,
+			ID:   "abcdef12",
+			Children: []TreeItem{
+				{
+					Name:     "subtree",
+					Type:     TreeNode,
+					ID:       "11223344",
+					Children: []TreeItem{},
+				},
+			},
+		}
+
+		got := FormatTree(tree)
+		// Tree nodes should not have annotation
+		if strings.Contains(got, "(tree,") {
+			t.Errorf("tree nodes should not have type annotation, got:\n%s", got)
+		}
+		if !strings.Contains(got, "└── subtree\n") {
+			t.Errorf("expected tree name only, got:\n%s", got)
+		}
+	})
+
+	t.Run("empty graph shows only graph name", func(t *testing.T) {
+		t.Parallel()
+
+		tree := &TreeResult{
+			Name:     "empty",
+			Type:     TreeNode,
+			ID:       "aaaabbbb",
+			Children: []TreeItem{},
+		}
+
+		got := FormatTree(tree)
+		if got != "empty\n" {
+			t.Errorf("expected only graph name, got:\n%s", got)
+		}
+	})
+
+	t.Run("blob at root displays correctly", func(t *testing.T) {
+		t.Parallel()
+
+		tree := &TreeResult{
+			Name: "vpc",
+			Type: BlobNode,
+			ID:   "a1b2c3d4",
+		}
+
+		got := FormatTree(tree)
+		if got != "vpc  (blob, a1b2c3d4)\n" {
+			t.Errorf("expected blob format, got:\n%s", got)
+		}
+	})
+
+	t.Run("entries sorted alphabetically at each level", func(t *testing.T) {
+		t.Parallel()
+		dir, _ := setupTestRepo(t)
+
+		if err := Init(dir, "default"); err != nil {
+			t.Fatalf("Init failed: %v", err)
+		}
+		for _, name := range []string{"zebra", "alpha", "middle"} {
+			if _, err := Put(dir, "default/"+name, []byte("data")); err != nil {
+				t.Fatalf("Put failed: %v", err)
+			}
+		}
+
+		result, err := Tree(dir, "default", TreeOptions{})
+		if err != nil {
+			t.Fatalf("Tree returned error: %v", err)
+		}
+
+		got := FormatTree(result)
+		lines := strings.Split(strings.TrimSuffix(got, "\n"), "\n")
+		// Lines should be: default, alpha, middle, zebra
+		if len(lines) != 4 {
+			t.Fatalf("expected 4 lines, got %d: %v", len(lines), lines)
+		}
+		if !strings.Contains(lines[1], "alpha") {
+			t.Errorf("expected alpha first, got: %s", lines[1])
+		}
+		if !strings.Contains(lines[2], "middle") {
+			t.Errorf("expected middle second, got: %s", lines[2])
+		}
+		if !strings.Contains(lines[3], "zebra") {
+			t.Errorf("expected zebra third, got: %s", lines[3])
+		}
+	})
+}
+
+func TestFormatTreeAll(t *testing.T) {
+	t.Parallel()
+
+	t.Run("multiple graphs separated by blank line", func(t *testing.T) {
+		t.Parallel()
+
+		result := &TreeAllResult{
+			Graphs: []TreeResult{
+				{
+					Name: "alpha",
+					Type: TreeNode,
+					ID:   "aaaa1111",
+					Children: []TreeItem{
+						{Name: "node1", Type: BlobNode, ID: "11111111"},
+					},
+				},
+				{
+					Name: "beta",
+					Type: TreeNode,
+					ID:   "bbbb2222",
+					Children: []TreeItem{
+						{Name: "node2", Type: BlobNode, ID: "22222222"},
+					},
+				},
+			},
+		}
+
+		got := FormatTreeAll(result)
+		expected := "alpha\n" +
+			"└── node1  (blob, 11111111)\n" +
+			"\n" +
+			"beta\n" +
+			"└── node2  (blob, 22222222)\n"
+
+		if got != expected {
+			t.Errorf("FormatTreeAll mismatch:\ngot:\n%s\nexpected:\n%s", got, expected)
+		}
+	})
+
+	t.Run("single graph no trailing blank line", func(t *testing.T) {
+		t.Parallel()
+
+		result := &TreeAllResult{
+			Graphs: []TreeResult{
+				{
+					Name: "only",
+					Type: TreeNode,
+					ID:   "cccc3333",
+					Children: []TreeItem{
+						{Name: "node", Type: BlobNode, ID: "33333333"},
+					},
+				},
+			},
+		}
+
+		got := FormatTreeAll(result)
+		expected := "only\n" +
+			"└── node  (blob, 33333333)\n"
+
+		if got != expected {
+			t.Errorf("FormatTreeAll mismatch:\ngot:\n%s\nexpected:\n%s", got, expected)
+		}
+	})
+}
+
+func BenchmarkTree1000Nodes(b *testing.B) {
+	// Setup: create a graph with 1000 blobs across multiple levels
+	dir, err := os.MkdirTemp(integrationDir, "BenchmarkTree1000Nodes-")
+	if err != nil {
+		b.Fatalf("failed to create temp dir: %v", err)
+	}
+	b.Cleanup(func() { os.RemoveAll(dir) })
+
+	repo, err := git.PlainInit(dir, false)
+	if err != nil {
+		b.Fatalf("failed to init repo: %v", err)
+	}
+
+	wt, _ := repo.Worktree()
+	dummyPath := dir + "/README.md"
+	if err := os.WriteFile(dummyPath, []byte("# bench\n"), 0o644); err != nil {
+		b.Fatalf("failed to write dummy: %v", err)
+	}
+	if _, err := wt.Add("README.md"); err != nil {
+		b.Fatalf("failed to add: %v", err)
+	}
+	if _, err := wt.Commit("Initial", &git.CommitOptions{
+		Author: &object.Signature{Name: "Test", Email: "test@test.com", When: time.Now()},
+	}); err != nil {
+		b.Fatalf("failed to commit: %v", err)
+	}
+
+	if err := Init(dir, "bench"); err != nil {
+		b.Fatalf("Init failed: %v", err)
+	}
+
+	// Create 1000 blobs in 10 groups of 100
+	for group := 0; group < 10; group++ {
+		for node := 0; node < 100; node++ {
+			path := fmt.Sprintf("bench/group%02d/node%03d", group, node)
+			if _, err := Put(dir, path, []byte(fmt.Sprintf("data-%d-%d", group, node))); err != nil {
+				b.Fatalf("Put failed: %v", err)
+			}
+		}
+	}
+
+	if _, err := Commit(dir, "bench", "Benchmark data"); err != nil {
+		b.Fatalf("Commit failed: %v", err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		result, err := Tree(dir, "bench", TreeOptions{})
+		if err != nil {
+			b.Fatalf("Tree failed: %v", err)
+		}
+		if result.Name != "bench" {
+			b.Fatalf("unexpected name: %s", result.Name)
+		}
+	}
 }
