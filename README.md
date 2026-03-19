@@ -308,7 +308,7 @@ grif tree --json default
 
 # All graphs in JSON
 grif tree --json
-# Output: {"graphs":[...],"warnings":[]}
+# Output: {"graphs":[...]}
 ```
 
 ## Error Handling
