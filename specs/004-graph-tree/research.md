@@ -81,17 +81,20 @@ graphs.
 
 ## R4: JSON Output Structure
 
-**Decision**: Use a recursive JSON structure with `name`, `type`, `id`, and optional
-`children` fields. Single graph/subtree returns a single object. All-graphs mode
-returns a JSON array. Blob nodes omit `children`. Tree nodes include `children` as
-an array (empty array for empty trees, omitted field for blobs).
+**Decision**: Use a recursive JSON node structure with `name`, `type`, `id`, and
+optional `children` fields. Single graph/subtree (`grif tree <graph>`) returns a
+single node object. All-graphs mode (`grif tree --all`) returns a wrapper object
+with a `graphs` array of node objects and an optional `warnings` array, matching
+the `TreeAllResult` contract. Blob nodes omit `children`. Tree nodes include
+`children` as an array (empty array for empty trees, omitted field for blobs).
 
-**Rationale**: This directly matches the spec examples (FR-013). The structure
-mirrors the Git tree hierarchy. Using `omitempty` on `children` means blob nodes
-naturally exclude the field. The `id` field contains the first 8 characters of the
-SHA hash, consistent with the human-readable display.
+**Rationale**: This directly matches the spec examples (FR-013) and the Go API/
+CLI contract (`TreeAllResult` with `graphs` and optional `warnings`). The node
+structure mirrors the Git tree hierarchy. Using `omitempty` on `children` means
+blob nodes naturally exclude the field. The `id` field contains the first 8
+characters of the SHA hash, consistent with the human-readable display.
 
-**JSON schema** (single graph):
+**JSON schema** (node object shape, used for single graph and inside `graphs`):
 
 ```json
 {
