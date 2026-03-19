@@ -122,20 +122,22 @@ $ grif tree --json default
 
 ```bash
 $ grif tree --json
-[
-  {
-    "name": "default",
-    "type": "tree",
-    "id": "d4e5f6a7",
-    "children": [...]
-  },
-  {
-    "name": "staging",
-    "type": "tree",
-    "id": "f6a7b8c9",
-    "children": [...]
-  }
-]
+{
+  "graphs": [
+    {
+      "name": "default",
+      "type": "tree",
+      "id": "d4e5f6a7",
+      "children": [...]
+    },
+    {
+      "name": "staging",
+      "type": "tree",
+      "id": "f6a7b8c9",
+      "children": [...]
+    }
+  ]
+}
 ```
 
 ## Error cases
