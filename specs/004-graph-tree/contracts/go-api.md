@@ -7,12 +7,12 @@
 ### Types
 
 ```go
-// TreeNode represents a single node in the recursive tree output.
-type TreeNode struct {
+// TreeItem represents a single node in the recursive tree output.
+type TreeItem struct {
     Name     string     `json:"name"`               // Single path segment name
     Type     NodeType   `json:"type"`               // "tree" or "blob"
     ID       string     `json:"id"`                 // First 8 chars of SHA hash
-    Children []TreeNode `json:"children,omitempty"` // Recursive children; nil for blobs
+    Children []TreeItem `json:"children,omitempty"` // Recursive children; nil for blobs
 }
 
 // TreeOptions controls the behavior of the Tree and TreeAll functions.
@@ -22,8 +22,8 @@ type TreeOptions struct {
 }
 
 // TreeResult holds the recursive tree for a single graph or subtree.
-// Structurally identical to TreeNode for JSON serialization.
-type TreeResult = TreeNode
+// Structurally identical to TreeItem for JSON serialization.
+type TreeResult = TreeItem
 
 // TreeAllResult holds the results of listing trees for all graphs.
 type TreeAllResult struct {
@@ -81,7 +81,7 @@ func Tree(repoPath string, path string, opts TreeOptions) (*TreeResult, error)
 3. Resolve root tree via `gitops.ResolveRootTree`
 4. If path has segments beyond graph name, walk to the target subtree/blob
 5. If target is a blob, return `TreeResult` with blob info and no children
-6. If target is a tree, recursively build `TreeNode` children respecting depth limit
+6. If target is a tree, recursively build `TreeItem` children respecting depth limit
 7. Sort children alphabetically at each level
 
 #### `TreeAll` — All Graphs
@@ -211,20 +211,22 @@ Single graph:
 All graphs:
 
 ```json
-[
-  {
-    "name": "default",
-    "type": "tree",
-    "id": "d4e5f6a7",
-    "children": [...]
-  },
-  {
-    "name": "staging",
-    "type": "tree",
-    "id": "f6a7b8c9",
-    "children": [...]
-  }
-]
+{
+  "graphs": [
+    {
+      "name": "default",
+      "type": "tree",
+      "id": "d4e5f6a7",
+      "children": [...]
+    },
+    {
+      "name": "staging",
+      "type": "tree",
+      "id": "f6a7b8c9",
+      "children": [...]
+    }
+  ]
+}
 ```
 
 All graphs with warnings:
@@ -236,10 +238,9 @@ All graphs with warnings:
 }
 ```
 
-**Note**: When all graphs resolve successfully (no warnings), the JSON output is
-a plain array `[...]`. When warnings are present, the output is an object with
-`graphs` and `warnings` fields. This keeps the common case clean while providing
-warning visibility when needed.
+**Note**: The all-graphs JSON output always uses the wrapper object with `graphs`
+and optional `warnings` fields. This provides a consistent schema for consumers
+regardless of whether warnings are present.
 
 ### Error Output
 

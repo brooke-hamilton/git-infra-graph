@@ -165,7 +165,7 @@ A user or automation script needs machine-readable output of the graph tree stru
 **Acceptance Scenarios**:
 
 1. **Given** a graph "default" with `network/vpc` (blob), **When** the user runs `grif tree --json default`, **Then** valid JSON is written to stdout containing a tree structure with name, type, id, and children fields.
-2. **Given** two graphs, **When** the user runs `grif tree --json` (no argument), **Then** valid JSON is written containing an array of tree objects, one per graph.
+2. **Given** two graphs, **When** the user runs `grif tree --json` (no argument), **Then** valid JSON is written containing an object with a `graphs` array of tree objects (one per graph) and an optional `warnings` array.
 3. **Given** the `--depth` flag is also specified, **When** the user runs `grif tree --json --depth 1 default`, **Then** the JSON output respects the depth limit.
 
 **Example — JSON output for a single graph**:
@@ -214,20 +214,22 @@ $ grif tree --json default
 
 ```text
 $ grif tree --json
-[
-  {
-    "name": "default",
-    "type": "tree",
-    "id": "d4e5f6a7",
-    "children": [...]
-  },
-  {
-    "name": "staging",
-    "type": "tree",
-    "id": "f6a7b8c9",
-    "children": [...]
-  }
-]
+{
+  "graphs": [
+    {
+      "name": "default",
+      "type": "tree",
+      "id": "d4e5f6a7",
+      "children": [...]
+    },
+    {
+      "name": "staging",
+      "type": "tree",
+      "id": "f6a7b8c9",
+      "children": [...]
+    }
+  ]
+}
 ```
 
 ---
@@ -254,17 +256,17 @@ $ grif tree --json
 - **FR-006**: When the specified graph does not exist, the command MUST fail with a descriptive error and a non-zero exit code.
 - **FR-007**: When the specified path does not exist within the graph, the command MUST fail with a descriptive error and a non-zero exit code.
 - **FR-008**: The human-readable output MUST use box-drawing characters matching the Unix `tree` command style: `├──` for non-last siblings, `└──` for last siblings, and `│` for vertical continuation lines.
-- **FR-009**: Entries at each level MUST be sorted alphabetically by name.
+- **FR-009**: Entries at each level MUST be sorted in case-sensitive alphabetical order (Go `sort.Strings` on entry names), consistent with Git's default tree entry ordering for non-directory entries.
 - **FR-010**: Tree nodes MUST be displayed with only their name. Blob nodes MUST be displayed with their name followed by two spaces and `(blob, <8-char-hash>)` where the hash is the first 8 characters of the object's SHA. No column alignment is applied — spacing is fixed regardless of sibling name lengths.
 - **FR-011**: When the target resolves to a blob node, the command MUST display a single line with the blob name, type, and abbreviated hash.
 - **FR-012**: The `tree` command MUST support a `--depth N` flag that limits recursion to N levels below the root. Depth 0 shows only the root node. Depth 1 shows the root and its immediate children. Negative values MUST produce an error.
-- **FR-013**: The `tree` command MUST support a `--json` flag that outputs the tree as a JSON structure. For a single graph or subtree, the output is a single JSON object with `name`, `type`, `id`, and optional `children` fields. For all graphs (no argument), the output is a JSON array of such objects.
+- **FR-013**: The `tree` command MUST support a `--json` flag that outputs the tree as a JSON structure. For a single graph or subtree, the output is a single JSON object with `name`, `type`, `id`, and optional `children` fields. For all graphs (no argument), the output is always a JSON object with a `graphs` array and an optional `warnings` array.
 - **FR-014**: The `--depth` flag MUST work in combination with both human-readable and JSON output modes. When used with the no-argument (all-graphs) form, the depth limit MUST apply uniformly to every graph displayed.
 - **FR-015**: The `tree` command MUST verify it is running inside a valid Git repository; otherwise it MUST fail with a non-zero exit code and a descriptive error on stderr.
 - **FR-016**: The `tree` command MUST write normal output to stdout and errors to stderr.
 - **FR-017**: The `tree` command MUST exit with code 0 on success and non-zero on failure.
 - **FR-018**: This command is read-only; it MUST NOT modify any refs, objects, or repository state.
-- **FR-019**: When displaying all graphs (no argument) and one or more graphs fail to resolve (e.g., corrupted tree object), the command MUST display all successfully resolved graphs, emit a warning to stderr for each failed graph, and exit with code 0 (partial success). This is consistent with the partial-success pattern in `grif log` (broken chain handling).
+- **FR-019**: When displaying all graphs (no argument) and one or more graphs fail to resolve (e.g., corrupted tree object), the command MUST display all successfully resolved graphs, emit a warning to stderr for each failed graph, and exit with code 0 (partial success). In JSON mode, warnings MUST be included in the `warnings` array of the wrapper object. This is consistent with the partial-success pattern in `grif log` (broken chain handling).
 
 ### Key Entities
 
@@ -289,7 +291,7 @@ $ grif tree --json
 
 - A graph has already been initialized using `grif init` and optionally has nodes created via `grif put` before `grif tree` is used.
 - The tree displays the current state: the staged tree (from the staging ref) if uncommitted changes exist, otherwise the last committed tree. This is consistent with how `grif get` resolves its root tree.
-- Entry sorting is case-sensitive alphabetical order, consistent with Git's default tree entry ordering.
+- Entry sorting uses Go `sort.Strings` (case-sensitive lexicographic order), which is consistent with Git's default tree entry ordering for non-directory entries.
 - The graph name itself serves as the root label in human-readable output, not the ref path.
 - When displaying all graphs (no argument), each graph's tree is independently resolved and rendered. A failure resolving one graph does not prevent displaying others; the command emits a warning to stderr for the failed graph and exits 0 (partial success per FR-019).
 

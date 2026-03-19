@@ -4,7 +4,7 @@
 
 ## Entities
 
-### TreeNode (output element)
+### TreeItem (output element)
 
 Represents a single node in the recursive tree output — either a tree (container)
 or blob (leaf). This is the core building block for both human-readable and JSON
@@ -15,7 +15,7 @@ output.
 | `Name` | `string` | Single path segment name (e.g., `vpc`, `network`) |
 | `Type` | `NodeType` | `"tree"` or `"blob"` — reuses existing `NodeType` from `node.go` |
 | `ID` | `string` | First 8 characters of the Git object SHA hash |
-| `Children` | `[]TreeNode` | Recursive children (populated for trees; `nil` for blobs) |
+| `Children` | `[]TreeItem` | Recursive children (populated for trees; `nil` for blobs) |
 
 **JSON serialization**:
 
@@ -27,7 +27,7 @@ output.
 **Validation rules**:
 
 - `Name` is always non-empty (sourced from Git tree entry names)
-- `Type` is always one of `BlobNode` or `TreeNode`
+- `Type` is always one of `BlobNode` or `TreeNode` (NodeType constants)
 - `ID` is always exactly 8 characters (truncated from 40-char SHA)
 - `Children` is `nil` for blobs; may be empty slice `[]` for empty trees
 
@@ -55,14 +55,14 @@ Result for a single graph or subtree tree operation.
 | `Name` | `string` | Graph name or subtree root name |
 | `Type` | `NodeType` | `"tree"` or `"blob"` (blob only when path resolves to a leaf) |
 | `ID` | `string` | 8-char abbreviated hash of the root node |
-| `Children` | `[]TreeNode` | Recursive children (nil for blobs) |
+| `Children` | `[]TreeItem` | Recursive children (nil for blobs) |
 
-**JSON serialization**: Same fields as `TreeNode` — `name`, `type`, `id`, `children`.
+**JSON serialization**: Same fields as `TreeItem` — `name`, `type`, `id`, `children`.
 
-This type is intentionally structurally identical to `TreeNode` so that the JSON
+This type is intentionally structurally identical to `TreeItem` so that the JSON
 output for a single graph is a single nested object matching the spec examples.
 
-### TreeListResult (all graphs)
+### TreeAllResult (all graphs)
 
 Result for the no-argument (all graphs) mode.
 
@@ -73,17 +73,17 @@ Result for the no-argument (all graphs) mode.
 
 **JSON serialization**:
 
-- All-graphs mode outputs `Graphs` as a JSON array (not the wrapper object)
-- `Warnings` are emitted to stderr in human mode; included in JSON only if non-empty
+- All-graphs mode always outputs a wrapper object with `graphs` array and optional `warnings` array
+- `Warnings` are emitted to stderr in human mode; included in JSON wrapper when non-empty
 
 ## Git Object Mapping
 
 | Data Model Field | Git Source |
 |-----------------|-----------|
-| `TreeNode.Name` | `object.TreeEntry.Name` |
-| `TreeNode.Type` | Derived from `object.TreeEntry.Mode` (`filemode.Dir` → tree, else → blob) |
-| `TreeNode.ID` | `object.TreeEntry.Hash.String()[:8]` |
-| `TreeNode.Children` | Recursive: `gitops.GetTreeByHash(repo, entry.Hash).Entries` |
+| `TreeItem.Name` | `object.TreeEntry.Name` |
+| `TreeItem.Type` | Derived from `object.TreeEntry.Mode` (`filemode.Dir` → tree, else → blob) |
+| `TreeItem.ID` | `object.TreeEntry.Hash.String()[:8]` |
+| `TreeItem.Children` | Recursive: `gitops.GetTreeByHash(repo, entry.Hash).Entries` |
 | `TreeResult.Name` | Graph name from ref (e.g., `refs/infra/default` → `default`) or last path segment |
 | `TreeResult.ID` | Root tree hash from `gitops.ResolveRootTree` → `hash.String()[:8]` |
 
@@ -116,9 +116,9 @@ Tree(graph, path, depth):
      a. Read tree entries via GetTreeByHash
      b. Sort entries alphabetically by name
      c. For each entry:
-        - If blob: create TreeNode{name, "blob", hash[:8], nil}
+        - If blob: create TreeItem{name, "blob", hash[:8], nil}
         - If tree and depth allows: recurse into subtree
-        - If tree and depth exhausted: create TreeNode{name, "tree", hash[:8], nil}
+        - If tree and depth exhausted: create TreeItem{name, "tree", hash[:8], nil}
      d. Return TreeResult with children
 
 TreeAll(depth):
@@ -127,7 +127,7 @@ TreeAll(depth):
   3. Sort alphabetically
   4. For each graph: call Tree(graph, "", depth)
      - On error: record warning, continue to next graph
-  5. Return TreeListResult with all results and any warnings
+  5. Return TreeAllResult with all results and any warnings
 ```
 
 ## Error Conditions

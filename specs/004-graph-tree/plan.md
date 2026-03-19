@@ -65,9 +65,9 @@ src/
 │   └── grif/
 │       └── main.go          # Add "tree" case to command router + runTree handler
 └── graph/
-    ├── graph.go             # Add Tree() function
+    ├── graph.go             # Add Tree(), TreeAll(), FormatTree(), FormatTreeAll() functions
     ├── graph_test.go        # Add Tree() integration tests
-    ├── node.go              # Add TreeResult, TreeNode types (reuse NodeType, NodeEntry)
+    ├── node.go              # Add TreeResult, TreeItem types (reuse NodeType, NodeEntry)
     └── internal/
         └── gitops/
             └── objects.go   # No changes needed — existing primitives sufficient
